@@ -1819,25 +1819,102 @@ Elm.ElmerPress.make = function (_elm) {
    $Maybe = Elm.Maybe.make(_elm),
    $StartApp = Elm.StartApp.make(_elm),
    $String = Elm.String.make(_elm);
+   var selectionLetterStyle = _L.fromArray([{ctor: "_Tuple2"
+                                            ,_0: "float"
+                                            ,_1: "left"}]);
+   var boardStyle = _L.fromArray([{ctor: "_Tuple2"
+                                  ,_0: "width"
+                                  ,_1: "120px"}
+                                 ,{ctor: "_Tuple2"
+                                  ,_0: "position"
+                                  ,_1: "relative"}]);
+   var letterSize = 24;
+   var boardLetterStyle = function (letter) {
+      return _L.fromArray([{ctor: "_Tuple2"
+                           ,_0: "visibility"
+                           ,_1: function (_) {
+                              return _.selected;
+                           }(letter) ? "hidden" : "visible"}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "position"
+                           ,_1: "absolute"}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "top"
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString(letterSize * function (_) {
+                              return _.y;
+                           }(letter)),
+                           "px")}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "left"
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString(letterSize * function (_) {
+                              return _.x;
+                           }(letter)),
+                           "px")}]);
+   };
+   var palette = {_: {}
+                 ,altGray: "#E6E5E2"
+                 ,blue: "#00A2FF"
+                 ,gray: "#E9E8E5"
+                 ,lightBlue: "#78C8F5"
+                 ,lightRed: "#F7998D"
+                 ,red: "#FF432E"};
    var letterStyle = function (letter) {
       return _L.fromArray([{ctor: "_Tuple2"
                            ,_0: "display"
                            ,_1: "block"}
                           ,{ctor: "_Tuple2"
-                           ,_0: "float"
-                           ,_1: "left"}
-                          ,{ctor: "_Tuple2"
                            ,_0: "width"
-                           ,_1: "24px"}
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString(letterSize),
+                           "px")}
                           ,{ctor: "_Tuple2"
                            ,_0: "height"
-                           ,_1: "24px"}
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString(letterSize),
+                           "px")}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "line-height"
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString(letterSize),
+                           "px")}
                           ,{ctor: "_Tuple2"
                            ,_0: "text-align"
                            ,_1: "center"}
                           ,{ctor: "_Tuple2"
-                           ,_0: "line-height"
-                           ,_1: "24px"}]);
+                           ,_0: "background"
+                           ,_1: function () {
+                              var _v0 = function (_) {
+                                 return _.color;
+                              }(letter);
+                              switch (_v0.ctor)
+                              {case "Just":
+                                 switch (_v0._0.ctor)
+                                   {case "Blue":
+                                      return (function (_) {
+                                           return _.locked;
+                                        }(letter) ? function (_) {
+                                           return _.blue;
+                                        } : function (_) {
+                                           return _.lightBlue;
+                                        })(palette);
+                                      case "Red":
+                                      return (function (_) {
+                                           return _.locked;
+                                        }(letter) ? function (_) {
+                                           return _.red;
+                                        } : function (_) {
+                                           return _.lightRed;
+                                        })(palette);}
+                                   break;
+                                 case "Nothing":
+                                 return function (_) {
+                                      return _.gray;
+                                   }(palette);}
+                              _U.badCase($moduleName,
+                              "between lines 183 and 186");
+                           }()}]);
    };
    var letterView = F4(function (address,
    letter,
@@ -1854,48 +1931,6 @@ Elm.ElmerPress.make = function (_elm) {
          return _.$char;
       }(letter)))]));
    });
-   var boardStyle = _L.fromArray([{ctor: "_Tuple2"
-                                  ,_0: "width"
-                                  ,_1: "120px"}]);
-   var palette = {_: {}
-                 ,altGray: "#E6E5E2"
-                 ,blue: "#00A2FF"
-                 ,gray: "#E9E8E5"
-                 ,lightBlue: "#78C8F5"
-                 ,lightRed: "#F7998D"
-                 ,red: "#FF432E"};
-   var boardLetterStyle = function (letter) {
-      return _L.fromArray([{ctor: "_Tuple2"
-                           ,_0: "visibility"
-                           ,_1: function (_) {
-                              return _.selected;
-                           }(letter) ? "hidden" : "visible"}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "background"
-                           ,_1: function () {
-                              var _v0 = function (_) {
-                                 return _.color;
-                              }(letter);
-                              switch (_v0.ctor)
-                              {case "Just":
-                                 switch (_v0._0.ctor)
-                                   {case "Blue":
-                                      return function (_) {
-                                           return _.lightBlue;
-                                        }(palette);
-                                      case "Red":
-                                      return function (_) {
-                                           return _.lightRed;
-                                        }(palette);}
-                                   break;
-                                 case "Nothing":
-                                 return function (_) {
-                                      return _.gray;
-                                   }(palette);}
-                              _U.badCase($moduleName,
-                              "between lines 184 and 187");
-                           }()}]);
-   };
    var memberOfSelection = F2(function (letter,
    selection) {
       return A2($List.member,
@@ -1928,7 +1963,7 @@ Elm.ElmerPress.make = function (_elm) {
       return A4(letterView,
       address,
       letter,
-      _L.fromArray([]),
+      selectionLetterStyle,
       Unselect(letter));
    });
    var Select = function (a) {
@@ -1943,70 +1978,89 @@ Elm.ElmerPress.make = function (_elm) {
       boardLetterStyle(letter),
       Select(letter));
    });
-   var view = F2(function (address,
-   model) {
-      return function () {
-         var hr = A2($Html.hr,
-         _L.fromArray([$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
-                                                            ,_0: "clear"
-                                                            ,_1: "both"}]))]),
-         _L.fromArray([]));
-         var boardView = A2($Html.div,
-         _L.fromArray([$Html$Attributes.style(boardStyle)]),
-         A2($List.map,
-         boardLetterView(address),
-         function (_) {
-            return _.board;
-         }(model)));
-         var submitButton = A2($Html.button,
-         _L.fromArray([A2($Html$Events.onClick,
-         address,
-         Submit)]),
-         _L.fromArray([$Html.text("Submit")]));
-         var selectionView = A2($Html.div,
-         _L.fromArray([]),
-         A2($List.map,
-         selectedLetterView(address),
-         function (_) {
-            return _.selection;
-         }(model)));
-         var turnView = A2($Html.div,
-         _L.fromArray([]),
-         _L.fromArray([$Html.text($Basics.toString(function (_) {
-            return _.turn;
-         }(model)))]));
-         return A2($Html.div,
-         _L.fromArray([]),
-         _L.fromArray([turnView
-                      ,hr
-                      ,selectionView
-                      ,submitButton
-                      ,hr
-                      ,boardView]));
-      }();
-   });
-   var letterBefore = F2(function (letter,
+   var countLettersOfColor = F2(function (color,
    board) {
+      return $List.length(A2($List.filter,
+      function (l) {
+         return _U.eq(function (_) {
+            return _.color;
+         }(l),
+         $Maybe.Just(color));
+      },
+      board));
+   });
+   var compact = function (list) {
       return function () {
-         var findBefore = function (ls) {
+         var maybeToList = function (item) {
             return function () {
-               switch (ls.ctor)
-               {case "::": switch (ls._1.ctor)
-                    {case "::":
-                       return _U.eq(ls._1._0,
-                         letter) ? $Maybe.Just(ls._0) : findBefore(A2($List._op["::"],
-                         ls._1._0,
-                         ls._1._1));
-                       case "[]":
-                       return $Maybe.Nothing;}
-                    break;
-                  case "[]":
-                  return $Maybe.Nothing;}
+               switch (item.ctor)
+               {case "Just":
+                  return _L.fromArray([item._0]);
+                  case "Nothing":
+                  return _L.fromArray([]);}
                _U.badCase($moduleName,
-               "between lines 79 and 83");
+               "between lines 52 and 55");
             }();
          };
-         return findBefore(board);
+         return A2($List.concatMap,
+         maybeToList,
+         list);
+      }();
+   };
+   var letterAt = F3(function (x,
+   y,
+   board) {
+      return $List.head(A2($List.filter,
+      function (letter) {
+         return _U.eq(function (_) {
+            return _.x;
+         }(letter),
+         x) && _U.eq(function (_) {
+            return _.y;
+         }(letter),
+         y);
+      },
+      board));
+   });
+   var neighboursOf = F2(function (letter,
+   board) {
+      return function () {
+         var below = A3(letterAt,
+         function (_) {
+            return _.x;
+         }(letter),
+         function (_) {
+            return _.y;
+         }(letter) + 1,
+         board);
+         var above = A3(letterAt,
+         function (_) {
+            return _.x;
+         }(letter),
+         function (_) {
+            return _.y;
+         }(letter) - 1,
+         board);
+         var after = A3(letterAt,
+         function (_) {
+            return _.x;
+         }(letter) + 1,
+         function (_) {
+            return _.y;
+         }(letter),
+         board);
+         var before = A3(letterAt,
+         function (_) {
+            return _.x;
+         }(letter) - 1,
+         function (_) {
+            return _.y;
+         }(letter),
+         board);
+         return compact(_L.fromArray([before
+                                     ,after
+                                     ,above
+                                     ,below]));
       }();
    });
    var toggleSelected = function (letter) {
@@ -2034,7 +2088,7 @@ Elm.ElmerPress.make = function (_elm) {
                   case "[]":
                   return _L.fromArray([]);}
                _U.badCase($moduleName,
-               "between lines 68 and 71");
+               "between lines 39 and 42");
             }();
          });
          return A3(replace,
@@ -2043,37 +2097,48 @@ Elm.ElmerPress.make = function (_elm) {
          newLetter);
       }();
    });
-   var newLetter = function ($char) {
+   var newLetter = F3(function (x,
+   y,
+   $char) {
       return {_: {}
              ,$char: $char
              ,color: $Maybe.Nothing
-             ,selected: false};
-   };
-   var board = _L.fromArray([newLetter(_U.chr("A"))
-                            ,newLetter(_U.chr("B"))
-                            ,newLetter(_U.chr("C"))
-                            ,newLetter(_U.chr("D"))
-                            ,newLetter(_U.chr("E"))
-                            ,newLetter(_U.chr("F"))
-                            ,newLetter(_U.chr("G"))
-                            ,newLetter(_U.chr("H"))
-                            ,newLetter(_U.chr("I"))
-                            ,newLetter(_U.chr("J"))
-                            ,newLetter(_U.chr("K"))
-                            ,newLetter(_U.chr("L"))
-                            ,newLetter(_U.chr("M"))
-                            ,newLetter(_U.chr("N"))
-                            ,newLetter(_U.chr("O"))
-                            ,newLetter(_U.chr("P"))
-                            ,newLetter(_U.chr("Q"))
-                            ,newLetter(_U.chr("R"))
-                            ,newLetter(_U.chr("S"))
-                            ,newLetter(_U.chr("T"))
-                            ,newLetter(_U.chr("U"))
-                            ,newLetter(_U.chr("V"))
-                            ,newLetter(_U.chr("W"))
-                            ,newLetter(_U.chr("X"))
-                            ,newLetter(_U.chr("Y"))]);
+             ,locked: false
+             ,selected: false
+             ,x: x
+             ,y: y};
+   });
+   var board = _L.fromArray([A3(newLetter,
+                            0,
+                            0,
+                            _U.chr("A"))
+                            ,A3(newLetter,1,0,_U.chr("B"))
+                            ,A3(newLetter,2,0,_U.chr("C"))
+                            ,A3(newLetter,3,0,_U.chr("D"))
+                            ,A3(newLetter,4,0,_U.chr("E"))
+                            ,A3(newLetter,0,1,_U.chr("F"))
+                            ,A3(newLetter,1,1,_U.chr("G"))
+                            ,A3(newLetter,2,1,_U.chr("H"))
+                            ,A3(newLetter,3,1,_U.chr("I"))
+                            ,A3(newLetter,4,1,_U.chr("J"))
+                            ,A3(newLetter,0,2,_U.chr("K"))
+                            ,A3(newLetter,1,2,_U.chr("L"))
+                            ,A3(newLetter,2,2,_U.chr("M"))
+                            ,A3(newLetter,3,2,_U.chr("N"))
+                            ,A3(newLetter,4,2,_U.chr("O"))
+                            ,A3(newLetter,0,3,_U.chr("P"))
+                            ,A3(newLetter,1,3,_U.chr("Q"))
+                            ,A3(newLetter,2,3,_U.chr("R"))
+                            ,A3(newLetter,3,3,_U.chr("S"))
+                            ,A3(newLetter,4,3,_U.chr("T"))
+                            ,A3(newLetter,0,4,_U.chr("U"))
+                            ,A3(newLetter,1,4,_U.chr("V"))
+                            ,A3(newLetter,2,4,_U.chr("W"))
+                            ,A3(newLetter,3,4,_U.chr("X"))
+                            ,A3(newLetter,
+                            4,
+                            4,
+                            _U.chr("Y"))]);
    var Model = F3(function (a,
    b,
    c) {
@@ -2082,13 +2147,19 @@ Elm.ElmerPress.make = function (_elm) {
              ,selection: b
              ,turn: c};
    });
-   var Letter = F3(function (a,
+   var Letter = F6(function (a,
    b,
-   c) {
+   c,
+   d,
+   e,
+   f) {
       return {_: {}
-             ,$char: a
-             ,color: b
-             ,selected: c};
+             ,$char: c
+             ,color: d
+             ,locked: f
+             ,selected: e
+             ,x: a
+             ,y: b};
    });
    var Blue = {ctor: "Blue"};
    var Red = {ctor: "Red"};
@@ -2098,7 +2169,7 @@ Elm.ElmerPress.make = function (_elm) {
          {case "Blue": return Red;
             case "Red": return Blue;}
          _U.badCase($moduleName,
-         "between lines 21 and 23");
+         "between lines 20 and 22");
       }();
    };
    var update = F2(function (action,
@@ -2128,23 +2199,58 @@ Elm.ElmerPress.make = function (_elm) {
               }();
             case "Submit":
             return function () {
+                 var hasColor = F2(function (color,
+                 letter) {
+                    return function () {
+                       switch (color.ctor)
+                       {case "Just":
+                          return _U.eq(function (_) {
+                               return _.color;
+                            }(letter),
+                            $Maybe.Just(color._0));
+                          case "Nothing": return false;}
+                       _U.badCase($moduleName,
+                       "between lines 108 and 111");
+                    }();
+                 });
+                 var markLocked = F2(function (board,
+                 letter) {
+                    return A2($List.all,
+                    hasColor(function (_) {
+                       return _.color;
+                    }(letter)),
+                    A2(neighboursOf,
+                    letter,
+                    board)) ? _U.replace([["locked"
+                                          ,true]],
+                    letter) : _U.replace([["locked"
+                                          ,false]],
+                    letter);
+                 });
                  var markColor = function (letter) {
                     return A2(memberOfSelection,
                     letter,
                     function (_) {
                        return _.selection;
-                    }(model)) ? _U.replace([["color"
-                                            ,$Maybe.Just(function (_) {
-                                               return _.turn;
-                                            }(model))]
-                                           ,["selected",false]],
-                    letter) : letter;
+                    }(model)) && $Basics.not(function (_) {
+                       return _.locked;
+                    }(letter)) ? _U.replace([["color"
+                                             ,$Maybe.Just(function (_) {
+                                                return _.turn;
+                                             }(model))]
+                                            ,["selected",false]],
+                    letter) : _U.replace([["selected"
+                                          ,false]],
+                    letter);
                  };
-                 var newBoard = A2($List.map,
+                 var coloredBoard = A2($List.map,
                  markColor,
                  function (_) {
                     return _.board;
                  }(model));
+                 var newBoard = A2($List.map,
+                 markLocked(coloredBoard),
+                 coloredBoard);
                  return _U.replace([["board"
                                     ,newBoard]
                                    ,["selection",_L.fromArray([])]
@@ -2176,13 +2282,111 @@ Elm.ElmerPress.make = function (_elm) {
                  model);
               }();}
          _U.badCase($moduleName,
-         "between lines 114 and 135");
+         "between lines 89 and 118");
       }();
    });
    var model = {_: {}
                ,board: board
                ,selection: _L.fromArray([])
                ,turn: Red};
+   var winner = function (model) {
+      return function () {
+         var numberOfRed = A2(countLettersOfColor,
+         Red,
+         function (_) {
+            return _.board;
+         }(model));
+         var numberOfBlue = A2(countLettersOfColor,
+         Blue,
+         function (_) {
+            return _.board;
+         }(model));
+         return _U.eq(numberOfRed + numberOfBlue,
+         $List.length(function (_) {
+            return _.board;
+         }(model))) ? _U.cmp(numberOfBlue,
+         numberOfRed) > 0 ? $Maybe.Just(Blue) : $Maybe.Just(Red) : $Maybe.Nothing;
+      }();
+   };
+   var view = F2(function (address,
+   model) {
+      return function () {
+         var hr = A2($Html.hr,
+         _L.fromArray([$Html$Attributes.style(_L.fromArray([{ctor: "_Tuple2"
+                                                            ,_0: "clear"
+                                                            ,_1: "both"}]))]),
+         _L.fromArray([]));
+         var gameOverView = function (color) {
+            return A2($Html.div,
+            _L.fromArray([]),
+            _L.fromArray([$Html.text(A2($Basics._op["++"],
+            "Game Over. ",
+            A2($Basics._op["++"],
+            $Basics.toString(color),
+            " wins.")))]));
+         };
+         var boardView = A2($Html.div,
+         _L.fromArray([$Html$Attributes.style(boardStyle)]),
+         A2($List.map,
+         boardLetterView(address),
+         function (_) {
+            return _.board;
+         }(model)));
+         var submitButton = A2($Html.button,
+         _L.fromArray([A2($Html$Events.onClick,
+         address,
+         Submit)]),
+         _L.fromArray([$Html.text("Submit")]));
+         var selectionView = A2($Html.div,
+         _L.fromArray([]),
+         A2($Basics._op["++"],
+         A2($List.map,
+         selectedLetterView(address),
+         function (_) {
+            return _.selection;
+         }(model)),
+         _L.fromArray([submitButton])));
+         var scoreView = A2($Html.div,
+         _L.fromArray([]),
+         _L.fromArray([$Html.text("Red: ")
+                      ,$Html.text($Basics.toString(A2(countLettersOfColor,
+                      Red,
+                      function (_) {
+                         return _.board;
+                      }(model))))
+                      ,$Html.text(" ")
+                      ,$Html.text("Blue: ")
+                      ,$Html.text($Basics.toString(A2(countLettersOfColor,
+                      Blue,
+                      function (_) {
+                         return _.board;
+                      }(model))))]));
+         var turnView = A2($Html.div,
+         _L.fromArray([]),
+         _L.fromArray([$Html.text("Current turn: ")
+                      ,$Html.text($Basics.toString(function (_) {
+                         return _.turn;
+                      }(model)))]));
+         return A2($Html.div,
+         _L.fromArray([]),
+         _L.fromArray([turnView
+                      ,hr
+                      ,scoreView
+                      ,hr
+                      ,function () {
+                         var _v13 = winner(model);
+                         switch (_v13.ctor)
+                         {case "Just":
+                            return gameOverView(_v13._0);
+                            case "Nothing":
+                            return selectionView;}
+                         _U.badCase($moduleName,
+                         "between lines 154 and 157");
+                      }()
+                      ,hr
+                      ,boardView]));
+      }();
+   });
    var main = $StartApp.start({_: {}
                               ,model: model
                               ,update: update
@@ -2193,25 +2397,31 @@ Elm.ElmerPress.make = function (_elm) {
                             ,Blue: Blue
                             ,Letter: Letter
                             ,Model: Model
-                            ,newLetter: newLetter
                             ,flipColor: flipColor
+                            ,newLetter: newLetter
                             ,board: board
                             ,model: model
                             ,replaceLetter: replaceLetter
                             ,toggleSelected: toggleSelected
-                            ,letterBefore: letterBefore
+                            ,letterAt: letterAt
+                            ,compact: compact
+                            ,neighboursOf: neighboursOf
+                            ,countLettersOfColor: countLettersOfColor
                             ,Select: Select
                             ,Unselect: Unselect
                             ,Submit: Submit
                             ,addLetterToSelection: addLetterToSelection
                             ,removeLetterFromSelection: removeLetterFromSelection
                             ,memberOfSelection: memberOfSelection
+                            ,winner: winner
                             ,update: update
                             ,view: view
                             ,palette: palette
+                            ,letterSize: letterSize
                             ,boardStyle: boardStyle
                             ,letterStyle: letterStyle
                             ,boardLetterStyle: boardLetterStyle
+                            ,selectionLetterStyle: selectionLetterStyle
                             ,letterView: letterView
                             ,selectedLetterView: selectedLetterView
                             ,boardLetterView: boardLetterView};
