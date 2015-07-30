@@ -85,8 +85,14 @@ winner model =
       then if numberOfBlue > numberOfRed then Just Blue else Just Red
       else Nothing
 
+isGameOver model =
+  case winner model of
+    Just _  -> True
+    Nothing -> False
+
 update action model =
-  case action of
+  if isGameOver model then model
+  else case action of
     Select letter ->
       let newLetter = { letter | selected <- True }
           newBoard  = replaceLetter (.board model) letter newLetter
