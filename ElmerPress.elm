@@ -42,6 +42,11 @@ flipColor color =
     Red  -> Blue
     Blue -> Red
 
+hasColor color letter =
+  case color of
+    Just color -> letter.color == Just color
+    Nothing    -> False
+
 randomLetters : Random.Seed -> List Char
 randomLetters seed =
   let alphabet = Array.fromList
@@ -129,38 +134,70 @@ isGameOver model =
     Just _  -> True
     Nothing -> False
 
-update action model =
-  if isGameOver model then model
-  else case action of
-    Select letter ->
-      let newLetter = { letter | selected <- True }
-          newBoard  = replaceLetter (.board model) letter newLetter
-          newSelection = addLetterToSelection newLetter (.selection model)
-      in
-        { model | board <- newBoard, selection <- newSelection }
-    Unselect letter ->
-      let newLetter = { letter | selected <- False }
-          newBoard  = replaceLetter (.board model) letter newLetter
-          newSelection = removeLetterFromSelection letter (.selection model)
-      in
-        { model | board <- newBoard, selection <- newSelection }
+selectLetter letter model =
+  let
+    newLetter =
+      { letter | selected <- True }
 
-    Submit ->
-      let markColor letter =
-            if memberOfSelection letter (.selection model) && not (.locked letter)
-              then { letter | color <- Just (.turn model), selected <- False }
-              else { letter | selected <- False }
-          hasColor color letter = case color of
-            Just color -> .color letter == Just color
-            Nothing    -> False
-          markLocked board letter =
-            if List.all (hasColor (.color letter)) (neighboursOf letter board)
-              then { letter | locked <- True }
-              else { letter | locked <- False }
-          coloredBoard = List.map (markColor) (.board model)
-          newBoard = List.map (markLocked coloredBoard) coloredBoard
+    newBoard =
+      replaceLetter model.board letter newLetter
+
+    newSelection =
+      addLetterToSelection newLetter model.selection
+  in
+    { model | board <- newBoard, selection <- newSelection }
+
+unselectLetter letter model =
+  let
+    newLetter =
+      { letter | selected <- False }
+
+    newBoard =
+      replaceLetter model.board letter newLetter
+
+    newSelection =
+      removeLetterFromSelection letter model.selection
+  in
+    { model | board <- newBoard, selection <- newSelection }
+
+switchTurn model =
+  let
+    markLetterColor letter =
+      if memberOfSelection letter model.selection && not letter.locked
+        then { letter | color <- Just (.turn model), selected <- False }
+        else { letter | selected <- False }
+
+    markIfLetterLocked board letter =
+      let
+        neighbours =
+          neighboursOf letter board
       in
-        { model | board <- newBoard, selection <- [], turn <- flipColor (.turn model) }
+        { letter | locked <- List.all (hasColor letter.color) neighbours }
+
+    markLettersColors board =
+      List.map (markLetterColor) board
+
+    markIfLettersLocked board =
+      List.map (markIfLetterLocked board) board
+
+    newBoard =
+      (markIfLettersLocked << markLettersColors) model.board
+  in
+    { model | board <- newBoard, selection <- [], turn <- flipColor model.turn }
+
+update action model =
+  if isGameOver model
+  then model
+  else
+    case action of
+      Select letter ->
+        selectLetter letter model
+
+      Unselect letter ->
+        unselectLetter letter model
+
+      Submit ->
+        switchTurn model
 
 -- view
 
