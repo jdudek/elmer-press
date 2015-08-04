@@ -1,7 +1,7 @@
 module ElmerPress where
 
 import Html exposing (div, span, text, button)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, disabled)
 import Html.Events exposing (onClick)
 import StartApp
 import String
@@ -10,15 +10,12 @@ import Debug
 import Random
 import Time
 import Signal.Extra
+import Http
+import Char
+import Task exposing (Task, succeed, fail, andThen, onError)
 
 main =
   let
-    actions =
-      Signal.mailbox Nothing
-
-    address =
-      Signal.forwardTo actions.address Just
-
     inputs = Signal.map2 (,) actions.signal seeds
 
     models =
@@ -27,7 +24,13 @@ main =
       in
         Signal.Extra.foldp' updateFromInput (newModel << snd) inputs
   in
-    Signal.map (view address) models
+    Signal.map (view actionsAddress) models
+
+actions =
+  Signal.mailbox Nothing
+
+actionsAddress =
+  Signal.forwardTo actions.address Just
 
 seeds : Signal Random.Seed
 seeds = Signal.map (Random.initialSeed << round << ((*) 1000) << fst) (Time.timestamp (Signal.constant ()))
@@ -108,9 +111,64 @@ neighboursOf letter board =
 countLettersOfColor color board =
   List.length (List.filter (\l -> .color l == (Just color)) board)
 
+wordQueries =
+  let
+    mailbox =
+      Signal.mailbox Nothing
+    address =
+      Signal.forwardTo mailbox.address Just
+  in
+    { mailbox | address <- address }
+
+wordRequestResults : Signal.Mailbox (String, Bool)
+wordRequestResults =
+  Signal.mailbox ("", False)
+
+knownWords : Signal (List (String, Bool))
+knownWords =
+  Signal.foldp (::) [] wordRequestResults.signal
+
+requestWord word =
+  let
+    url =
+      "http://letterpress-words-api.herokuapp.com/" ++ Http.uriEncode(word)
+
+    succeedIf200 _ =
+      succeed (word, True)
+
+    succeedIf404 err =
+      case err of
+        Http.BadResponse 404 _ -> succeed (word, False)
+        _ -> fail err
+
+    request =
+      (Http.getString url `andThen` succeedIf200) `onError` succeedIf404
+
+    sendResult result =
+      Signal.send wordRequestResults.address result
+  in
+    request `andThen` sendResult
+
+port wordRequestTasks : Signal (Task Http.Error ())
+port wordRequestTasks =
+  let
+    doRequest query =
+      case query of
+        Nothing ->
+          succeed ()
+
+        Just word ->
+          requestWord word
+  in
+    Signal.map doRequest wordQueries.signal
+
+port actionsFromKnownWords : Signal (Task x ())
+port actionsFromKnownWords =
+  Signal.map (\list -> Signal.send actionsAddress (Verified list)) knownWords
+
 -- update
 
-type Action = Select Letter | Unselect Letter | Submit
+type Action = Select Letter | Unselect Letter | Verified (List (String, Bool))
 
 addLetterToSelection letter selection =
   if List.member letter selection then selection else selection ++ [letter]
@@ -120,6 +178,14 @@ removeLetterFromSelection letter selection =
 
 memberOfSelection letter selection =
   List.member letter selection
+
+wordFromSelection : List Letter -> String
+wordFromSelection selection =
+  String.fromList (List.map (Char.toLower << .char) selection)
+
+isCorrectWord : String -> List (String, Bool) -> Bool
+isCorrectWord word words =
+  List.any (\(word', status) -> word == word' && status == True) words
 
 winner model =
   let numberOfBlue = countLettersOfColor Blue (.board model)
@@ -164,7 +230,7 @@ switchTurn model =
   let
     markLetterColor letter =
       if memberOfSelection letter model.selection && not letter.locked
-        then { letter | color <- Just (.turn model), selected <- False }
+        then { letter | color <- Just model.turn, selected <- False }
         else { letter | selected <- False }
 
     markIfLetterLocked board letter =
@@ -196,8 +262,10 @@ update action model =
       Unselect letter ->
         unselectLetter letter model
 
-      Submit ->
-        switchTurn model
+      Verified words ->
+        if isCorrectWord (wordFromSelection model.selection) words
+        then switchTurn model
+        else model
 
 -- view
 
@@ -216,7 +284,11 @@ view address model =
           , text (toString (countLettersOfColor Blue (.board model)))
           ]
       submitButton =
-        button [onClick address Submit] [text "Submit"]
+        button
+          [ onClick wordQueries.address (wordFromSelection model.selection)
+          , disabled (List.isEmpty model.selection)
+          ]
+          [text "Submit"]
       selectionView =
         div []
           ((List.map (selectedLetterView address) (.selection model)) ++ [submitButton])
