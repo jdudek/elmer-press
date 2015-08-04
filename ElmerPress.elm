@@ -7,9 +7,30 @@ import StartApp
 import String
 import Array
 import Debug
+import Random
+import Time
+import Signal.Extra
 
 main =
-  StartApp.start { model = model, view = view, update = update }
+  let
+    actions =
+      Signal.mailbox Nothing
+
+    address =
+      Signal.forwardTo actions.address Just
+
+    inputs = Signal.map2 (,) actions.signal seeds
+
+    models =
+      let
+        updateFromInput ((Just action), seed) model = update action model
+      in
+        Signal.Extra.foldp' updateFromInput (newModel << snd) inputs
+  in
+    Signal.map (view address) models
+
+seeds : Signal Random.Seed
+seeds = Signal.map (Random.initialSeed << round << ((*) 1000) << fst) (Time.timestamp (Signal.constant ()))
 
 type Color = Red | Blue
 type alias Letter = { x: Int, y: Int, char: Char, color: Maybe Color, selected: Bool, locked: Bool }
@@ -21,18 +42,36 @@ flipColor color =
     Red  -> Blue
     Blue -> Red
 
-newLetter x y char = { x = x, y = y, char = char, color = Nothing, selected = False, locked = False }
+randomLetters : Random.Seed -> List Char
+randomLetters seed =
+  let alphabet = Array.fromList
+        [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'
+        , 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+      intGenerator  = Random.int 0 (Array.length alphabet - 1)
+      listGenerator = Random.list 25 intGenerator
+      numbers = fst (Random.generate listGenerator seed)
+      alphabetAt = (flip (Array.get) alphabet) >> (\(Just v) -> v)
+  in List.map alphabetAt numbers
 
-board =
-    [ newLetter 0 0 'A', newLetter 1 0 'B', newLetter 2 0 'C', newLetter 3 0 'D', newLetter 4 0 'E'
-    , newLetter 0 1 'F', newLetter 1 1 'G', newLetter 2 1 'H', newLetter 3 1 'I', newLetter 4 1 'J'
-    , newLetter 0 2 'K', newLetter 1 2 'L', newLetter 2 2 'M', newLetter 3 2 'N', newLetter 4 2 'O'
-    , newLetter 0 3 'P', newLetter 1 3 'Q', newLetter 2 3 'R', newLetter 3 3 'S', newLetter 4 3 'T'
-    , newLetter 0 4 'U', newLetter 1 4 'V', newLetter 2 4 'W', newLetter 3 4 'X', newLetter 4 4 'Y'
-    ]
+product : List a -> List b -> List (a, b)
+product xs ys =
+  let product' xs ys =
+    case xs of
+      x::xs' -> (List.map (\y -> (x, y)) ys)::(product' xs' ys)
+      []     -> []
+  in List.concat (product' xs ys)
 
-model : Model
-model = { board = board, selection = [], turn = Red }
+boardFromLetters letters =
+  let newLetter (x, y) char = { x = x, y = y, char = char, color = Nothing, selected = False, locked = False }
+      coords = product [0,1,2,3,4] [0,1,2,3,4]
+  in List.map2 newLetter coords letters
+
+newModel : Random.Seed -> Model
+newModel seed =
+  let
+    board = boardFromLetters (randomLetters seed)
+  in
+    { board = board, selection = [], turn = Red }
 
 replaceLetter board letter newLetter =
   let replace xs y z =
