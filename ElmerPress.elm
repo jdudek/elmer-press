@@ -3,16 +3,18 @@ module ElmerPress where
 import Html exposing (div, span, text, button)
 import Html.Attributes exposing (style, disabled)
 import Html.Events exposing (onClick)
-import StartApp
 import String
-import Array
 import Debug
 import Random
 import Time
 import Signal.Extra
 import Http
-import Char
 import Task exposing (Task, succeed, fail, andThen, onError)
+
+import ElmerPress.Board as Board exposing (Board)
+import ElmerPress.Color as Color exposing (..)
+import ElmerPress.Letter as Letter exposing (..)
+import ElmerPress.Selection as Selection exposing (Selection)
 
 main =
   let
@@ -33,83 +35,18 @@ actionsAddress =
   Signal.forwardTo actions.address Just
 
 seeds : Signal Random.Seed
-seeds = Signal.map (Random.initialSeed << round << ((*) 1000) << fst) (Time.timestamp (Signal.constant ()))
+seeds =
+  let
+    timeSignal =
+      Signal.map fst (Time.timestamp (Signal.constant ()))
+  in
+    Signal.map (Random.initialSeed << round << ((*) 1000)) timeSignal
 
-type Color = Red | Blue
-type alias Letter = { x: Int, y: Int, char: Char, color: Maybe Color, selected: Bool, locked: Bool }
-type alias Board = List Letter
-type alias Model = { board : Board, selection: List Letter, turn: Color }
-
-flipColor color =
-  case color of
-    Red  -> Blue
-    Blue -> Red
-
-hasColor color letter =
-  case color of
-    Just color -> letter.color == Just color
-    Nothing    -> False
-
-randomLetters : Random.Seed -> List Char
-randomLetters seed =
-  let alphabet = Array.fromList
-        [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'
-        , 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-      intGenerator  = Random.int 0 (Array.length alphabet - 1)
-      listGenerator = Random.list 25 intGenerator
-      numbers = fst (Random.generate listGenerator seed)
-      alphabetAt = (flip (Array.get) alphabet) >> (\(Just v) -> v)
-  in List.map alphabetAt numbers
-
-product : List a -> List b -> List (a, b)
-product xs ys =
-  let product' xs ys =
-    case xs of
-      x::xs' -> (List.map (\y -> (x, y)) ys)::(product' xs' ys)
-      []     -> []
-  in List.concat (product' xs ys)
-
-boardFromLetters letters =
-  let newLetter (x, y) char = { x = x, y = y, char = char, color = Nothing, selected = False, locked = False }
-      coords = product [0,1,2,3,4] [0,1,2,3,4]
-  in List.map2 newLetter coords letters
+type alias Model = { board : Board, selection: Selection, turn: Color }
 
 newModel : Random.Seed -> Model
 newModel seed =
-  let
-    board = boardFromLetters (randomLetters seed)
-  in
-    { board = board, selection = [], turn = Red }
-
-replaceLetter board letter newLetter =
-  let replace xs y z =
-        case xs of
-          x::xs' -> if x == y then z::xs' else x::(replace xs' y z)
-          []     -> []
-  in
-    replace board letter newLetter
-
-toggleSelected letter =
-  { letter | selected <- not (.selected letter) }
-
-letterAt x y board =
-  List.head (List.filter (\letter -> .x letter == x && .y letter == y) board)
-
-compact list =
-  let maybeToList item = case item of
-        Just letter -> [letter]
-        Nothing     -> []
-  in List.concatMap maybeToList list
-
-neighboursOf letter board =
-  let before = letterAt (.x letter - 1) (.y letter) board
-      after  = letterAt (.x letter + 1) (.y letter) board
-      above  = letterAt (.x letter) (.y letter - 1) board
-      below  = letterAt (.x letter) (.y letter + 1) board
-  in compact [before, after, above, below]
-
-countLettersOfColor color board =
-  List.length (List.filter (\l -> .color l == (Just color)) board)
+  { board = Board.initRandom seed, selection = [], turn = Red }
 
 wordQueries =
   let
@@ -170,30 +107,24 @@ port actionsFromKnownWords =
 
 type Action = Select Letter | Unselect Letter | Verified (List (String, Bool))
 
-addLetterToSelection letter selection =
-  if List.member letter selection then selection else selection ++ [letter]
-
-removeLetterFromSelection letter selection =
-  List.filter (\l -> l /= letter) selection
-
-memberOfSelection letter selection =
-  List.member letter selection
-
-wordFromSelection : List Letter -> String
-wordFromSelection selection =
-  String.fromList (List.map (Char.toLower << .char) selection)
-
 isCorrectWord : String -> List (String, Bool) -> Bool
 isCorrectWord word words =
   List.any (\(word', status) -> word == word' && status == True) words
 
+scoreOf color model =
+  Board.countLettersOfColor color model.board
+
 winner model =
-  let numberOfBlue = countLettersOfColor Blue (.board model)
-      numberOfRed  = countLettersOfColor Red (.board model)
+  let
+    numberOfBlue =
+      Board.countLettersOfColor Blue model.board
+
+    numberOfRed =
+      Board.countLettersOfColor Red model.board
   in
-    if numberOfRed + numberOfBlue == List.length (.board model)
-      then if numberOfBlue > numberOfRed then Just Blue else Just Red
-      else Nothing
+    if numberOfRed + numberOfBlue == Board.countLetters model.board then
+      if numberOfBlue > numberOfRed then Just Blue else Just Red
+    else Nothing
 
 isGameOver model =
   case winner model of
@@ -206,10 +137,10 @@ selectLetter letter model =
       { letter | selected <- True }
 
     newBoard =
-      replaceLetter model.board letter newLetter
+      Board.replaceLetter model.board letter newLetter
 
     newSelection =
-      addLetterToSelection newLetter model.selection
+      Selection.addLetter newLetter model.selection
   in
     { model | board <- newBoard, selection <- newSelection }
 
@@ -219,26 +150,29 @@ unselectLetter letter model =
       { letter | selected <- False }
 
     newBoard =
-      replaceLetter model.board letter newLetter
+      Board.replaceLetter model.board letter newLetter
 
     newSelection =
-      removeLetterFromSelection letter model.selection
+      Selection.removeLetter letter model.selection
   in
     { model | board <- newBoard, selection <- newSelection }
 
 switchTurn model =
   let
     markLetterColor letter =
-      if memberOfSelection letter model.selection && not letter.locked
+      if Selection.member letter model.selection && not letter.locked
         then { letter | color <- Just model.turn, selected <- False }
         else { letter | selected <- False }
 
     markIfLetterLocked board letter =
       let
         neighbours =
-          neighboursOf letter board
+          Board.neighboursOf letter board
+
+        areAllNeighboursSameColor =
+          List.all (Letter.hasColor letter.color) neighbours
       in
-        { letter | locked <- List.all (hasColor letter.color) neighbours }
+        { letter | locked <- areAllNeighboursSameColor }
 
     markLettersColors board =
       List.map (markLetterColor) board
@@ -249,7 +183,11 @@ switchTurn model =
     newBoard =
       (markIfLettersLocked << markLettersColors) model.board
   in
-    { model | board <- newBoard, selection <- [], turn <- flipColor model.turn }
+    { model
+      | board <- newBoard
+      , selection <- []
+      , turn <- Color.flip model.turn
+    }
 
 update action model =
   if isGameOver model
@@ -263,7 +201,7 @@ update action model =
         unselectLetter letter model
 
       Verified words ->
-        if isCorrectWord (wordFromSelection model.selection) words
+        if isCorrectWord (Selection.toWord model.selection) words
         then switchTurn model
         else model
 
@@ -273,28 +211,28 @@ view address model =
   let turnView =
         div []
           [ text "Current turn: "
-          , text (toString (.turn model))
+          , text (toString model.turn)
           ]
       scoreView =
         div []
           [ text "Red: "
-          , text (toString (countLettersOfColor Red (.board model)))
+          , text (toString (scoreOf Red model))
           , text " "
           , text "Blue: "
-          , text (toString (countLettersOfColor Blue (.board model)))
+          , text (toString (scoreOf Blue model))
           ]
       submitButton =
         button
-          [ onClick wordQueries.address (wordFromSelection model.selection)
+          [ onClick wordQueries.address (Selection.toWord model.selection)
           , disabled (List.isEmpty model.selection)
           ]
           [text "Submit"]
       selectionView =
         div []
-          ((List.map (selectedLetterView address) (.selection model)) ++ [submitButton])
+          ((List.map (selectedLetterView address) model.selection) ++ [submitButton])
       boardView =
         div [style boardStyle]
-          (List.map (boardLetterView address) (.board model))
+          (List.map (boardLetterView address) model.board)
       gameOverView color =
         div []
           [text ("Game Over. " ++ (toString color) ++ " wins.")]
@@ -329,22 +267,30 @@ boardStyle =
   ]
 
 letterStyle letter =
-  [ ("display", "block")
-  , ("width",  (toString letterSize) ++ "px")
-  , ("height", (toString letterSize) ++ "px")
-  , ("line-height", (toString letterSize) ++ "px")
-  , ("text-align", "center")
-  , ("background", case .color letter of
-                     Just Blue -> (if (.locked letter) then .blue else .lightBlue) palette
-                     Just Red  -> (if (.locked letter) then .red  else .lightRed)  palette
-                     Nothing   -> .gray palette)
-  ]
+  let background =
+    case letter.color of
+      Just Blue ->
+        (if letter.locked then .blue else .lightBlue) palette
+
+      Just Red ->
+        (if letter.locked then .red  else .lightRed)  palette
+
+      Nothing ->
+        palette.gray
+  in
+    [ ("display", "block")
+    , ("width",  (toString letterSize) ++ "px")
+    , ("height", (toString letterSize) ++ "px")
+    , ("line-height", (toString letterSize) ++ "px")
+    , ("text-align", "center")
+    , ("background", background)
+    ]
 
 boardLetterStyle letter =
   [ ("visibility", if .selected letter then "hidden" else "visible")
   , ("position", "absolute")
-  , ("top",  (toString (letterSize * (.y letter))) ++ "px")
-  , ("left", (toString (letterSize * (.x letter))) ++ "px")
+  , ("top",  (toString (letterSize * letter.y)) ++ "px")
+  , ("left", (toString (letterSize * letter.x)) ++ "px")
   ]
 
 selectionLetterStyle =
@@ -356,7 +302,7 @@ letterView address letter additionalStyle action =
     [ style ((letterStyle letter) ++ additionalStyle)
     , onClick address action
     ]
-    [text (String.fromChar (.char letter))]
+    [text (String.fromChar letter.char)]
 
 selectedLetterView address letter =
   letterView address letter selectionLetterStyle (Unselect letter)
