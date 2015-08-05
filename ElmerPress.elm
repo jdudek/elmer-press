@@ -1,15 +1,39 @@
 module ElmerPress where
 
 import Html exposing (div, span, text, button)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, disabled)
 import Html.Events exposing (onClick)
 import StartApp
 import String
 import Array
 import Debug
+import Random
+import Time
+import Signal.Extra
+import Http
+import Char
+import Task exposing (Task, succeed, fail, andThen, onError)
 
 main =
-  StartApp.start { model = model, view = view, update = update }
+  let
+    inputs = Signal.map2 (,) actions.signal seeds
+
+    models =
+      let
+        updateFromInput ((Just action), seed) model = update action model
+      in
+        Signal.Extra.foldp' updateFromInput (newModel << snd) inputs
+  in
+    Signal.map (view actionsAddress) models
+
+actions =
+  Signal.mailbox Nothing
+
+actionsAddress =
+  Signal.forwardTo actions.address Just
+
+seeds : Signal Random.Seed
+seeds = Signal.map (Random.initialSeed << round << ((*) 1000) << fst) (Time.timestamp (Signal.constant ()))
 
 type Color = Red | Blue
 type alias Letter = { x: Int, y: Int, char: Char, color: Maybe Color, selected: Bool, locked: Bool }
@@ -21,18 +45,41 @@ flipColor color =
     Red  -> Blue
     Blue -> Red
 
-newLetter x y char = { x = x, y = y, char = char, color = Nothing, selected = False, locked = False }
+hasColor color letter =
+  case color of
+    Just color -> letter.color == Just color
+    Nothing    -> False
 
-board =
-    [ newLetter 0 0 'A', newLetter 1 0 'B', newLetter 2 0 'C', newLetter 3 0 'D', newLetter 4 0 'E'
-    , newLetter 0 1 'F', newLetter 1 1 'G', newLetter 2 1 'H', newLetter 3 1 'I', newLetter 4 1 'J'
-    , newLetter 0 2 'K', newLetter 1 2 'L', newLetter 2 2 'M', newLetter 3 2 'N', newLetter 4 2 'O'
-    , newLetter 0 3 'P', newLetter 1 3 'Q', newLetter 2 3 'R', newLetter 3 3 'S', newLetter 4 3 'T'
-    , newLetter 0 4 'U', newLetter 1 4 'V', newLetter 2 4 'W', newLetter 3 4 'X', newLetter 4 4 'Y'
-    ]
+randomLetters : Random.Seed -> List Char
+randomLetters seed =
+  let alphabet = Array.fromList
+        [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'
+        , 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+      intGenerator  = Random.int 0 (Array.length alphabet - 1)
+      listGenerator = Random.list 25 intGenerator
+      numbers = fst (Random.generate listGenerator seed)
+      alphabetAt = (flip (Array.get) alphabet) >> (\(Just v) -> v)
+  in List.map alphabetAt numbers
 
-model : Model
-model = { board = board, selection = [], turn = Red }
+product : List a -> List b -> List (a, b)
+product xs ys =
+  let product' xs ys =
+    case xs of
+      x::xs' -> (List.map (\y -> (x, y)) ys)::(product' xs' ys)
+      []     -> []
+  in List.concat (product' xs ys)
+
+boardFromLetters letters =
+  let newLetter (x, y) char = { x = x, y = y, char = char, color = Nothing, selected = False, locked = False }
+      coords = product [0,1,2,3,4] [0,1,2,3,4]
+  in List.map2 newLetter coords letters
+
+newModel : Random.Seed -> Model
+newModel seed =
+  let
+    board = boardFromLetters (randomLetters seed)
+  in
+    { board = board, selection = [], turn = Red }
 
 replaceLetter board letter newLetter =
   let replace xs y z =
@@ -64,9 +111,64 @@ neighboursOf letter board =
 countLettersOfColor color board =
   List.length (List.filter (\l -> .color l == (Just color)) board)
 
+wordQueries =
+  let
+    mailbox =
+      Signal.mailbox Nothing
+    address =
+      Signal.forwardTo mailbox.address Just
+  in
+    { mailbox | address <- address }
+
+wordRequestResults : Signal.Mailbox (String, Bool)
+wordRequestResults =
+  Signal.mailbox ("", False)
+
+knownWords : Signal (List (String, Bool))
+knownWords =
+  Signal.foldp (::) [] wordRequestResults.signal
+
+requestWord word =
+  let
+    url =
+      "http://letterpress-words-api.herokuapp.com/" ++ Http.uriEncode(word)
+
+    succeedIf200 _ =
+      succeed (word, True)
+
+    succeedIf404 err =
+      case err of
+        Http.BadResponse 404 _ -> succeed (word, False)
+        _ -> fail err
+
+    request =
+      (Http.getString url `andThen` succeedIf200) `onError` succeedIf404
+
+    sendResult result =
+      Signal.send wordRequestResults.address result
+  in
+    request `andThen` sendResult
+
+port wordRequestTasks : Signal (Task Http.Error ())
+port wordRequestTasks =
+  let
+    doRequest query =
+      case query of
+        Nothing ->
+          succeed ()
+
+        Just word ->
+          requestWord word
+  in
+    Signal.map doRequest wordQueries.signal
+
+port actionsFromKnownWords : Signal (Task x ())
+port actionsFromKnownWords =
+  Signal.map (\list -> Signal.send actionsAddress (Verified list)) knownWords
+
 -- update
 
-type Action = Select Letter | Unselect Letter | Submit
+type Action = Select Letter | Unselect Letter | Verified (List (String, Bool))
 
 addLetterToSelection letter selection =
   if List.member letter selection then selection else selection ++ [letter]
@@ -77,6 +179,14 @@ removeLetterFromSelection letter selection =
 memberOfSelection letter selection =
   List.member letter selection
 
+wordFromSelection : List Letter -> String
+wordFromSelection selection =
+  String.fromList (List.map (Char.toLower << .char) selection)
+
+isCorrectWord : String -> List (String, Bool) -> Bool
+isCorrectWord word words =
+  List.any (\(word', status) -> word == word' && status == True) words
+
 winner model =
   let numberOfBlue = countLettersOfColor Blue (.board model)
       numberOfRed  = countLettersOfColor Red (.board model)
@@ -85,37 +195,77 @@ winner model =
       then if numberOfBlue > numberOfRed then Just Blue else Just Red
       else Nothing
 
-update action model =
-  case action of
-    Select letter ->
-      let newLetter = { letter | selected <- True }
-          newBoard  = replaceLetter (.board model) letter newLetter
-          newSelection = addLetterToSelection newLetter (.selection model)
-      in
-        { model | board <- newBoard, selection <- newSelection }
-    Unselect letter ->
-      let newLetter = { letter | selected <- False }
-          newBoard  = replaceLetter (.board model) letter newLetter
-          newSelection = removeLetterFromSelection letter (.selection model)
-      in
-        { model | board <- newBoard, selection <- newSelection }
+isGameOver model =
+  case winner model of
+    Just _  -> True
+    Nothing -> False
 
-    Submit ->
-      let markColor letter =
-            if memberOfSelection letter (.selection model) && not (.locked letter)
-              then { letter | color <- Just (.turn model), selected <- False }
-              else { letter | selected <- False }
-          hasColor color letter = case color of
-            Just color -> .color letter == Just color
-            Nothing    -> False
-          markLocked board letter =
-            if List.all (hasColor (.color letter)) (neighboursOf letter board)
-              then { letter | locked <- True }
-              else { letter | locked <- False }
-          coloredBoard = List.map (markColor) (.board model)
-          newBoard = List.map (markLocked coloredBoard) coloredBoard
+selectLetter letter model =
+  let
+    newLetter =
+      { letter | selected <- True }
+
+    newBoard =
+      replaceLetter model.board letter newLetter
+
+    newSelection =
+      addLetterToSelection newLetter model.selection
+  in
+    { model | board <- newBoard, selection <- newSelection }
+
+unselectLetter letter model =
+  let
+    newLetter =
+      { letter | selected <- False }
+
+    newBoard =
+      replaceLetter model.board letter newLetter
+
+    newSelection =
+      removeLetterFromSelection letter model.selection
+  in
+    { model | board <- newBoard, selection <- newSelection }
+
+switchTurn model =
+  let
+    markLetterColor letter =
+      if memberOfSelection letter model.selection && not letter.locked
+        then { letter | color <- Just model.turn, selected <- False }
+        else { letter | selected <- False }
+
+    markIfLetterLocked board letter =
+      let
+        neighbours =
+          neighboursOf letter board
       in
-        { model | board <- newBoard, selection <- [], turn <- flipColor (.turn model) }
+        { letter | locked <- List.all (hasColor letter.color) neighbours }
+
+    markLettersColors board =
+      List.map (markLetterColor) board
+
+    markIfLettersLocked board =
+      List.map (markIfLetterLocked board) board
+
+    newBoard =
+      (markIfLettersLocked << markLettersColors) model.board
+  in
+    { model | board <- newBoard, selection <- [], turn <- flipColor model.turn }
+
+update action model =
+  if isGameOver model
+  then model
+  else
+    case action of
+      Select letter ->
+        selectLetter letter model
+
+      Unselect letter ->
+        unselectLetter letter model
+
+      Verified words ->
+        if isCorrectWord (wordFromSelection model.selection) words
+        then switchTurn model
+        else model
 
 -- view
 
@@ -134,7 +284,11 @@ view address model =
           , text (toString (countLettersOfColor Blue (.board model)))
           ]
       submitButton =
-        button [onClick address Submit] [text "Submit"]
+        button
+          [ onClick wordQueries.address (wordFromSelection model.selection)
+          , disabled (List.isEmpty model.selection)
+          ]
+          [text "Submit"]
       selectionView =
         div []
           ((List.map (selectedLetterView address) (.selection model)) ++ [submitButton])
