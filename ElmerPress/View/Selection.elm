@@ -9,8 +9,17 @@ import ElmerPress.Selection as Selection exposing (..)
 import ElmerPress.View.Letter as Letter
 
 view address selection =
-  div []
-    ((List.map (selectedLetterView address) selection) ++ [submitButton address selection])
+  let
+    letterViews =
+      List.map (selectedLetterView address) selection
+
+    buttonViews =
+      [ submitButton address selection
+      , clearButton address selection
+      ]
+  in
+    div []
+      (letterViews ++ buttonViews)
 
 selectionLetterStyle =
   [ ("float", "left")
@@ -25,3 +34,10 @@ submitButton address selection =
     , disabled (List.isEmpty selection)
     ]
     [text "Submit"]
+
+clearButton address selection =
+  button
+    [ onClick address Clear
+    , disabled (List.isEmpty selection)
+    ]
+    [text "Clear"]

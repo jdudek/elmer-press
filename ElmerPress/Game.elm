@@ -5,7 +5,7 @@ import Random
 import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Board as Board exposing (Board)
 import ElmerPress.Color as Color exposing (..)
-import ElmerPress.Letter as Letter exposing (..)
+import ElmerPress.Letter as Letter exposing (Letter)
 import ElmerPress.Selection as Selection exposing (Selection)
 
 type alias Model = { board : Board, selection: Selection, turn: Color }
@@ -24,6 +24,9 @@ update action model =
 
       Unselect letter ->
         unselectLetter letter model
+
+      Clear ->
+        clearSelection model
 
       Query word ->
         model
@@ -84,6 +87,13 @@ unselectLetter letter model =
       Selection.removeLetter letter model.selection
   in
     { model | board <- newBoard, selection <- newSelection }
+
+clearSelection model =
+  let
+    newBoard =
+      List.map Letter.unselect model.board
+  in
+    { model | board <- newBoard, selection <- [] }
 
 switchTurn model =
   let

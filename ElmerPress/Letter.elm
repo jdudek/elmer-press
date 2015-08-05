@@ -9,6 +9,5 @@ hasColor color letter =
     Just color -> letter.color == Just color
     Nothing    -> False
 
-toggleSelected letter =
-  { letter | selected <- not (.selected letter) }
-
+unselect letter =
+  { letter | selected <- False }
