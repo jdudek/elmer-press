@@ -8,9 +8,9 @@ import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Selection as Selection exposing (..)
 import ElmerPress.View.Letter as Letter
 
-view address wordQueriesAddress selection =
+view address selection =
   div []
-    ((List.map (selectedLetterView address) selection) ++ [submitButton wordQueriesAddress selection])
+    ((List.map (selectedLetterView address) selection) ++ [submitButton address selection])
 
 selectionLetterStyle =
   [ ("float", "left")
@@ -19,9 +19,9 @@ selectionLetterStyle =
 selectedLetterView address letter =
   Letter.view address letter selectionLetterStyle (Unselect letter)
 
-submitButton wordQueriesAddress selection =
+submitButton address selection =
   button
-    [ onClick wordQueriesAddress (Selection.toWord selection)
+    [ onClick address (Query (Selection.toWord selection))
     , disabled (List.isEmpty selection)
     ]
     [text "Submit"]

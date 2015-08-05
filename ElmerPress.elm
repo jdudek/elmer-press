@@ -15,7 +15,7 @@ main =
   let
     update = Game.update
 
-    view = GameView.view actionsAddress wordQueries.address
+    view = GameView.view actionsAddress
 
     inputs = Signal.map2 (,) actions.signal seeds
 
@@ -43,12 +43,17 @@ seeds =
 
 wordQueries =
   let
-    mailbox =
-      Signal.mailbox Nothing
-    address =
-      Signal.forwardTo mailbox.address Just
+    isQuery action =
+      case action of
+        Just (Query _) -> True
+        _ -> False
+
+    toJustWord action =
+      case action of
+        Just (Query word) -> Just word
+        Nothing -> Nothing
   in
-    { mailbox | address <- address }
+    Signal.map toJustWord (Signal.filter isQuery Nothing actions.signal)
 
 wordRequestResults : Signal.Mailbox (String, Bool)
 wordRequestResults =
@@ -90,7 +95,7 @@ port wordRequestTasks =
         Just word ->
           requestWord word
   in
-    Signal.map doRequest wordQueries.signal
+    Signal.map doRequest wordQueries
 
 port actionsFromKnownWords : Signal (Task x ())
 port actionsFromKnownWords =

@@ -25,6 +25,9 @@ update action model =
       Unselect letter ->
         unselectLetter letter model
 
+      Query word ->
+        model
+
       Verified words ->
         if isCorrectWord (Selection.toWord model.selection) words
         then switchTurn model

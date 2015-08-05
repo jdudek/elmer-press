@@ -9,7 +9,7 @@ import ElmerPress.Color as Color exposing (..)
 import ElmerPress.View.Board as BoardView
 import ElmerPress.View.Selection as SelectionView
 
-view address wordQueriesAddress model =
+view address model =
   let turnView =
         div []
           [ text "Current turn: "
@@ -34,7 +34,7 @@ view address wordQueriesAddress model =
       , scoreView
       , hr
       , (case winner model of
-          Nothing -> SelectionView.view address wordQueriesAddress model.selection
+          Nothing -> SelectionView.view address model.selection
           Just color -> gameOverView color
         )
       , hr
