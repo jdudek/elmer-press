@@ -34,7 +34,7 @@ view address model =
       , scoreView
       , hr
       , (case winner model of
-          Nothing -> SelectionView.view address model.selection
+          Nothing -> SelectionView.view address model
           Just color -> gameOverView color
         )
       , hr

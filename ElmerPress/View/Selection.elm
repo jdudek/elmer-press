@@ -5,21 +5,33 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
 import ElmerPress.Action as Action exposing (..)
+import ElmerPress.Game exposing (QueryStatus(..))
 import ElmerPress.Selection as Selection exposing (..)
 import ElmerPress.View.Letter as Letter
 
-view address selection =
+view address model =
   let
+    selection = model.selection
+
     letterViews =
       List.map (selectedLetterView address) selection
 
     buttonViews =
-      [ submitButton address selection
-      , clearButton address selection
+      [ submitButton address model
+      , clearButton address model
       ]
+
+    messageViewItems =
+      if model.queryStatus == Invalid then
+        [ text " "
+        , i [] [text (Selection.toWord model.selection)]
+        , text " is not a valid word!"
+        ]
+      else
+        []
   in
     div []
-      (letterViews ++ buttonViews)
+      (letterViews ++ buttonViews ++ messageViewItems)
 
 selectionLetterStyle =
   [ ("float", "left")
@@ -28,16 +40,27 @@ selectionLetterStyle =
 selectedLetterView address letter =
   Letter.view address letter selectionLetterStyle (Unselect letter)
 
-submitButton address selection =
-  button
-    [ onClick address (Query (Selection.toWord selection))
-    , disabled (List.isEmpty selection)
-    ]
-    [text "Submit"]
+submitButton address model =
+  let
+    caption =
+      if isSubmitting model then "Submitting…" else "Submit"
+  in
+    button
+      [ onClick address (Query (Selection.toWord model.selection))
+      , disabled (isButtonDisabled model)
+      ]
+      [text caption]
 
-clearButton address selection =
+clearButton address model =
   button
     [ onClick address Clear
-    , disabled (List.isEmpty selection)
+    , disabled (isButtonDisabled model)
     ]
     [text "Clear"]
+
+isSubmitting model =
+  model.queryStatus == Progress
+
+isButtonDisabled model =
+  List.isEmpty model.selection || isSubmitting model
+

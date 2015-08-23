@@ -1,4 +1,11 @@
-module ElmerPress.Game (Model, initModel, update, scoreOf, winner) where
+module ElmerPress.Game
+  ( Model
+  , QueryStatus(..)
+  , initModel
+  , update
+  , scoreOf
+  , winner
+  ) where
 
 import Random
 
@@ -8,33 +15,57 @@ import ElmerPress.Color as Color exposing (..)
 import ElmerPress.Letter as Letter exposing (Letter)
 import ElmerPress.Selection as Selection exposing (Selection)
 
-type alias Model = { board : Board, selection: Selection, turn: Color }
+type QueryStatus = None | Progress | Invalid
+
+type alias Model =
+  { board : Board
+  , selection : Selection
+  , turn : Color
+  , queryStatus : QueryStatus
+  }
 
 initModel : Random.Seed -> Model
 initModel seed =
-  { board = Board.initRandom seed, selection = [], turn = Red }
+  { board = Board.initRandom seed
+  , selection = []
+  , turn = Red
+  , queryStatus = None
+  }
 
 update action model =
-  if isGameOver model
-  then model
-  else
-    case action of
-      Select letter ->
-        selectLetter letter model
+  let
+    isUpdateAllowed =
+      case action of
+        Verified _ ->
+          True
 
-      Unselect letter ->
-        unselectLetter letter model
+        _ ->
+          model.queryStatus /= Progress
 
-      Clear ->
-        clearSelection model
+    update' model =
+      case action of
+        Select letter ->
+          selectLetter letter model
 
-      Query word ->
-        model
+        Unselect letter ->
+          unselectLetter letter model
 
-      Verified words ->
-        if isCorrectWord (Selection.toWord model.selection) words
-        then switchTurn model
-        else model
+        Clear ->
+          clearSelection model
+
+        Query word ->
+          { model | queryStatus <- Progress }
+
+        Verified words ->
+          if isCorrectWord (Selection.toWord model.selection) words then
+            switchTurn model
+          else
+            { model | queryStatus <- Invalid }
+  in
+    if isGameOver model || not (isUpdateAllowed) then
+      model
+    else
+      update' { model | queryStatus <- None }
 
 -- private
 
