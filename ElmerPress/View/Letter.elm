@@ -42,5 +42,6 @@ letterStyle letter =
     , ("height", (toString letterSize) ++ "px")
     , ("line-height", (toString letterSize) ++ "px")
     , ("text-align", "center")
+    , ("text-transform", "uppercase")
     , ("background", background)
     ]

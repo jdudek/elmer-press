@@ -11,6 +11,7 @@ import Random
 
 import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Board as Board exposing (Board)
+import ElmerPress.Board.Random as RandomBoard
 import ElmerPress.Color as Color exposing (..)
 import ElmerPress.Letter as Letter exposing (Letter)
 import ElmerPress.Selection as Selection exposing (Selection)
@@ -26,7 +27,7 @@ type alias Model =
 
 initModel : Random.Seed -> Model
 initModel seed =
-  { board = Board.initRandom seed
+  { board = RandomBoard.init seed
   , selection = []
   , turn = Red
   , queryStatus = None

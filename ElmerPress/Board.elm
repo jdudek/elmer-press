@@ -1,6 +1,6 @@
 module ElmerPress.Board
   ( Board
-  , initRandom
+  , init
   , replaceLetter
   , countLetters
   , countLettersOfColor
@@ -8,14 +8,13 @@ module ElmerPress.Board
   ) where
 
 import ElmerPress.Letter as Letter exposing (Letter)
-import Random
 import Array
 
 type alias Board = List Letter
 
-initRandom : Random.Seed -> Board
-initRandom seed =
-  fromLetters (randomLetters seed)
+init : List Char -> Board
+init =
+  fromLetters
 
 replaceLetter board letter newLetter =
   let replace xs y z =
@@ -42,17 +41,6 @@ neighboursOf letter board =
 
 letterAt x y board =
   List.head (List.filter (\letter -> .x letter == x && .y letter == y) board)
-
-randomLetters : Random.Seed -> List Char
-randomLetters seed =
-  let alphabet = Array.fromList
-        [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'
-        , 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-      intGenerator  = Random.int 0 (Array.length alphabet - 1)
-      listGenerator = Random.list 25 intGenerator
-      numbers = fst (Random.generate listGenerator seed)
-      alphabetAt = (flip (Array.get) alphabet) >> (\(Just v) -> v)
-  in List.map alphabetAt numbers
 
 product : List a -> List b -> List (a, b)
 product xs ys =
