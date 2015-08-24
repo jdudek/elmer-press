@@ -6,5 +6,5 @@ type Action
   = Select Letter
   | Unselect Letter
   | Clear
-  | Query String
+  | Submit String
   | Verified String Bool

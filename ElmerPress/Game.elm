@@ -1,6 +1,6 @@
 module ElmerPress.Game
   ( Model
-  , QueryStatus(..)
+  , SubmissionStatus(..)
   , initModel
   , update
   , scoreOf
@@ -19,14 +19,15 @@ import ElmerPress.Color as Color exposing (..)
 import ElmerPress.Letter as Letter exposing (Letter)
 import ElmerPress.Selection as Selection exposing (Selection)
 
-type QueryStatus = None | Progress | Invalid
+type SubmissionStatus = None | Progress | Invalid | AlreadyPlayed
 
 type alias Model =
   { board : Board
   , selection : Selection
   , turn : Color
-  , queryStatus : QueryStatus
-  , verifiedWords : List (String, Bool)
+  , submissionStatus : SubmissionStatus
+  , verifications : List (String, Bool)
+  , playedWords : List String
   }
 
 initModel : Random.Seed -> Model
@@ -34,23 +35,21 @@ initModel seed =
   { board = RandomBoard.init seed
   , selection = []
   , turn = Red
-  , queryStatus = None
-  , verifiedWords = []
+  , submissionStatus = None
+  , verifications = []
+  , playedWords = []
   }
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   let
-    noFx model =
-      (model, Effects.none)
-
     isUpdateAllowed =
       case action of
         Verified _ _ ->
           True
 
         _ ->
-          model.queryStatus /= Progress
+          model.submissionStatus /= Progress
 
     update' model =
       case action of
@@ -63,29 +62,16 @@ update action model =
         Clear ->
           noFx (clearSelection model)
 
-        Query word ->
-          case findVerifiedWord word model.verifiedWords of
-            Just (word, status) ->
-              update (Verified word status) model
-
-            Nothing ->
-              ({ model | queryStatus <- Progress }, requestWord word)
+        Submit word ->
+          submitWord word model
 
         Verified word status ->
-          noFx <|
-            let
-              model' =
-                { model | verifiedWords <- (word, status)::model.verifiedWords }
-            in
-              if isCorrectWord (Selection.toWord model.selection) model'.verifiedWords then
-                switchTurn model'
-              else
-                { model' | queryStatus <- Invalid }
+          handleVerification word status model
   in
     if isGameOver model || not (isUpdateAllowed) then
       noFx model
     else
-      update' { model | queryStatus <- None }
+      update' { model | submissionStatus <- None }
 
 -- private
 
@@ -142,6 +128,43 @@ clearSelection model =
   in
     { model | board <- newBoard, selection <- [] }
 
+submitWord word model =
+  if List.member word model.playedWords  then
+    noFx (setSubmissionStatus AlreadyPlayed model)
+  else
+    case findVerification word model.verifications of
+      Just (word, status) ->
+        update (Verified word status) model
+
+      Nothing ->
+        withFx (verifyWord word) (setSubmissionStatus Progress model)
+
+handleVerification word status model =
+  let
+    model' =
+      storeVerification (word, status) model
+
+    selectedWord =
+      Selection.toWord model.selection
+
+    isCorrect =
+      isCorrectWord selectedWord model'.verifications
+  in
+    noFx <|
+      if isCorrect then
+        (switchTurn << storePlayedWord selectedWord) model'
+      else
+        setSubmissionStatus Invalid model
+
+setSubmissionStatus status model =
+  { model | submissionStatus <- status }
+
+storeVerification verification model =
+  { model | verifications <- verification :: model.verifications }
+
+storePlayedWord word model =
+  { model | playedWords <- word :: model.playedWords }
+
 switchTurn model =
   let
     markLetterColor letter =
@@ -174,7 +197,7 @@ switchTurn model =
       , turn <- Color.flip model.turn
     }
 
-requestWord word =
+verifyWord word =
   let
     url =
       "http://letterpress-words-api.herokuapp.com/" ++ Http.uriEncode(word)
@@ -185,7 +208,7 @@ requestWord word =
     succeedIf404 err =
       case err of
         Http.BadResponse 404 _ -> succeed (Verified word False)
-        _ -> succeed (Query word)
+        _ -> succeed (Submit word)
 
     request =
       (Http.getString url `andThen` succeedIf200) `onError` succeedIf404
@@ -196,6 +219,14 @@ isCorrectWord : String -> List (String, Bool) -> Bool
 isCorrectWord word words =
   List.any (\(word', status) -> word == word' && status == True) words
 
-findVerifiedWord : String -> List (String, Bool) -> Maybe (String, Bool)
-findVerifiedWord word words =
+findVerification : String -> List (String, Bool) -> Maybe (String, Bool)
+findVerification word words =
   List.head (List.filter ((==) word << fst) words)
+
+noFx : Model -> (Model, Effects Action)
+noFx model =
+  (model, Effects.none)
+
+withFx : (Effects Action) -> Model -> (Model, Effects Action)
+withFx effects model =
+  (model, effects)
