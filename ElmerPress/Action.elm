@@ -7,4 +7,4 @@ type Action
   | Unselect Letter
   | Clear
   | Query String
-  | Verified (List (String, Bool))
+  | Verified String Bool

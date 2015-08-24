@@ -8,6 +8,9 @@ module ElmerPress.Game
   ) where
 
 import Random
+import Http
+import Task exposing (Task, succeed, fail, andThen, onError)
+import Effects exposing (Effects)
 
 import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Board as Board exposing (Board)
@@ -23,6 +26,7 @@ type alias Model =
   , selection : Selection
   , turn : Color
   , queryStatus : QueryStatus
+  , verifiedWords : List (String, Bool)
   }
 
 initModel : Random.Seed -> Model
@@ -31,13 +35,18 @@ initModel seed =
   , selection = []
   , turn = Red
   , queryStatus = None
+  , verifiedWords = []
   }
 
+update : Action -> Model -> (Model, Effects Action)
 update action model =
   let
+    noFx model =
+      (model, Effects.none)
+
     isUpdateAllowed =
       case action of
-        Verified _ ->
+        Verified _ _ ->
           True
 
         _ ->
@@ -46,25 +55,30 @@ update action model =
     update' model =
       case action of
         Select letter ->
-          selectLetter letter model
+          noFx (selectLetter letter model)
 
         Unselect letter ->
-          unselectLetter letter model
+          noFx (unselectLetter letter model)
 
         Clear ->
-          clearSelection model
+          noFx (clearSelection model)
 
         Query word ->
-          { model | queryStatus <- Progress }
+          ({ model | queryStatus <- Progress }, requestWord word)
 
-        Verified words ->
-          if isCorrectWord (Selection.toWord model.selection) words then
-            switchTurn model
-          else
-            { model | queryStatus <- Invalid }
+        Verified word status ->
+          noFx <|
+            let
+              model' =
+                { model | verifiedWords <- (word, status)::model.verifiedWords }
+            in
+              if isCorrectWord (Selection.toWord model.selection) model'.verifiedWords then
+                switchTurn model'
+              else
+                { model' | queryStatus <- Invalid }
   in
     if isGameOver model || not (isUpdateAllowed) then
-      model
+      noFx model
     else
       update' { model | queryStatus <- None }
 
@@ -158,3 +172,21 @@ switchTurn model =
       , selection <- []
       , turn <- Color.flip model.turn
     }
+
+requestWord word =
+  let
+    url =
+      "http://letterpress-words-api.herokuapp.com/" ++ Http.uriEncode(word)
+
+    succeedIf200 _ =
+      succeed (Verified word True)
+
+    succeedIf404 err =
+      case err of
+        Http.BadResponse 404 _ -> succeed (Verified word False)
+        _ -> succeed (Query word)
+
+    request =
+      (Http.getString url `andThen` succeedIf200) `onError` succeedIf404
+  in
+    Effects.task request

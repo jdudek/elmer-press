@@ -1,59 +1,71 @@
 module ElmerPress where
 
-import Http
-import Html exposing (Html)
+import Effects
+import Html exposing (Html, text)
 import Random
-import Signal.Extra
+import StartApp
 import Task exposing (Task)
 import Time
 
 import ElmerPress.Game as Game
 import ElmerPress.View.Game as GameView
-import ElmerPress.Action as Action exposing (..)
-import ElmerPress.Verification as Verification
+import ElmerPress.Action as GameAction
 
-main : Signal Html
+app =
+  let
+    model : Maybe Game.Model
+    model = Nothing
+  in
+    StartApp.start
+      { init = (model, Effects.none)
+      , view = view
+      , update = update
+      , inputs = [Signal.map Seeded seeds]
+      }
+
 main =
-  Signal.map view models
+  app.html
 
-models : Signal Game.Model
-models =
-  let
-    updateFromInput ((Just action), seed) model = Game.update action model
-  in
-    Signal.Extra.foldp' updateFromInput (Game.initModel << snd) inputs
+port tasks : Signal (Task Effects.Never ())
+port tasks =
+  app.tasks
 
-inputs : Signal (Maybe Action, Random.Seed)
-inputs =
-  let
-    allActions =
-      Signal.merge actions.signal verification.actions
-  in
-    Signal.map2 (,) allActions seeds
+type alias Model = Maybe Game.Model
 
-view =
-  GameView.view actions.address
+type Action = Seeded Random.Seed | GameAction GameAction.Action
 
-actions : { signal : Signal (Maybe Action), address : Signal.Address Action }
-actions =
-  let
-    mailbox = Signal.mailbox Nothing
-    address = Signal.forwardTo mailbox.address Just
-  in
-    { mailbox | address <- address }
+update action model =
+  case (action, model) of
+    (Seeded seed, Nothing) ->
+      (Just (Game.initModel seed), Effects.none)
+
+    (GameAction action, Just model) ->
+      let
+        (model', effects) = Game.update action model
+      in
+        (Just model', Effects.map GameAction effects)
+
+    (_, Just model) ->
+      (Just model, Effects.none)
+
+    (_, Nothing) ->
+      (Nothing, Effects.none)
+
+view address model =
+  case model of
+    Nothing ->
+      text ""
+
+    Just model ->
+      GameView.view (Signal.forwardTo address GameAction) model
 
 seeds : Signal Random.Seed
 seeds =
   let
     timeSignal =
-      Signal.map fst (Time.timestamp (Signal.constant ()))
+      Time.every 100
+
+    intSignal =
+      Signal.map (round << ((*) 1000)) timeSignal
   in
-    Signal.map (Random.initialSeed << round << ((*) 1000)) timeSignal
-
-verification :
-  { actions : Signal (Maybe Action), tasks : Signal (Task Http.Error ()) }
-verification =
-  Verification.fromActions actions.signal
-
-port runTasks : Signal (Task Http.Error ())
-port runTasks = verification.tasks
+    Signal.map Random.initialSeed intSignal
