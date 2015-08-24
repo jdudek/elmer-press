@@ -64,7 +64,12 @@ update action model =
           noFx (clearSelection model)
 
         Query word ->
-          ({ model | queryStatus <- Progress }, requestWord word)
+          case findVerifiedWord word model.verifiedWords of
+            Just (word, status) ->
+              update (Verified word status) model
+
+            Nothing ->
+              ({ model | queryStatus <- Progress }, requestWord word)
 
         Verified word status ->
           noFx <|
@@ -83,10 +88,6 @@ update action model =
       update' { model | queryStatus <- None }
 
 -- private
-
-isCorrectWord : String -> List (String, Bool) -> Bool
-isCorrectWord word words =
-  List.any (\(word', status) -> word == word' && status == True) words
 
 scoreOf color model =
   Board.countLettersOfColor color model.board
@@ -190,3 +191,11 @@ requestWord word =
       (Http.getString url `andThen` succeedIf200) `onError` succeedIf404
   in
     Effects.task request
+
+isCorrectWord : String -> List (String, Bool) -> Bool
+isCorrectWord word words =
+  List.any (\(word', status) -> word == word' && status == True) words
+
+findVerifiedWord : String -> List (String, Bool) -> Maybe (String, Bool)
+findVerifiedWord word words =
+  List.head (List.filter ((==) word << fst) words)
