@@ -11,6 +11,7 @@ import Random
 import Http
 import Task exposing (Task, succeed, fail, andThen, onError)
 import Effects exposing (Effects)
+import Util.Effects exposing (..)
 
 import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Board as Board exposing (Board)
@@ -245,11 +246,3 @@ isCorrectWord word words =
 findVerification : String -> List (String, Bool) -> Maybe (String, Bool)
 findVerification word words =
   List.head (List.filter ((==) word << fst) words)
-
-noFx : Model -> (Model, Effects Action)
-noFx model =
-  (model, Effects.none)
-
-withFx : (Effects Action) -> Model -> (Model, Effects Action)
-withFx effects model =
-  (model, effects)
