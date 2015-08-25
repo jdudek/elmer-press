@@ -75,8 +75,31 @@ update action model =
 
 -- private
 
+scoreOf : Color -> Model -> Int
 scoreOf color model =
-  Board.countLettersOfColor color model.board
+  let
+    ofColor letter =
+      letter.color == Just color
+
+    ofOtherColor letter =
+      letter.color == Just (Color.flip color)
+
+    and f g x =
+      f x && g x
+
+    boardScore =
+      List.length (List.filter (ofColor `and` (not << .selected)) model.board)
+
+    selectionScoreOfCurrentTurn =
+      List.length (List.filter (not << (ofOtherColor `and` .locked)) model.selection)
+
+    selectionScoreOfOtherTurn =
+      List.length (List.filter (ofColor `and` .locked) model.selection)
+  in
+    if color == model.turn then
+      boardScore + selectionScoreOfCurrentTurn
+    else
+      boardScore + selectionScoreOfOtherTurn
 
 winner model =
   let
