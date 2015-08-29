@@ -4,8 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
-import ElmerPress.Action as Action exposing (..)
-import ElmerPress.Game exposing (SubmissionStatus(..))
+import ElmerPress.Game exposing (SubmissionStatus(..), Action(..))
 import ElmerPress.Selection as Selection exposing (..)
 import ElmerPress.View.Letter as Letter
 

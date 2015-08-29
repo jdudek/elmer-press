@@ -12,7 +12,6 @@ import Util.Effects exposing (..)
 import ElmerPress.Game as Game
 import ElmerPress.Color exposing (Color(..))
 import ElmerPress.View.Game as GameView
-import ElmerPress.Action as GameAction
 
 type alias Id = Int
 
@@ -27,7 +26,7 @@ type Action
   | AddGame
   | OpenGame Id
   | BackToList
-  | GameAction Id GameAction.Action
+  | GameAction Id Game.Action
 
 main =
   app.html

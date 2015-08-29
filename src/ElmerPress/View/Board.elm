@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
-import ElmerPress.Action as Action exposing (..)
+import ElmerPress.Game exposing (Action(..))
 import ElmerPress.View.Letter as Letter exposing (letterSize)
 
 view address board =

@@ -1,5 +1,6 @@
 module ElmerPress.Game
   ( Model
+  , Action(..)
   , SubmissionStatus(..)
   , initModel
   , update
@@ -13,7 +14,6 @@ import Task exposing (Task, succeed, fail, andThen, onError)
 import Effects exposing (Effects)
 import Util.Effects exposing (..)
 
-import ElmerPress.Action as Action exposing (..)
 import ElmerPress.Board as Board exposing (Board)
 import ElmerPress.Board.Random as RandomBoard
 import ElmerPress.Color as Color exposing (..)
@@ -21,6 +21,8 @@ import ElmerPress.Letter as Letter exposing (Letter)
 import ElmerPress.Selection as Selection exposing (Selection)
 
 type SubmissionStatus = None | Progress | Invalid | AlreadyPlayed
+
+-- model
 
 type alias Model =
   { board : Board
@@ -40,6 +42,15 @@ initModel seed =
   , verifications = []
   , playedWords = []
   }
+
+-- update
+
+type Action
+  = Select Letter
+  | Unselect Letter
+  | Clear
+  | Submit String
+  | Verified String Bool
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
