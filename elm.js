@@ -1800,6 +1800,148 @@ Elm.Dict.make = function (_elm) {
                       ,fromList: fromList};
    return _elm.Dict.values;
 };
+Elm.Effects = Elm.Effects || {};
+Elm.Effects.make = function (_elm) {
+   "use strict";
+   _elm.Effects = _elm.Effects || {};
+   if (_elm.Effects.values)
+   return _elm.Effects.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "Effects",
+   $Basics = Elm.Basics.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Native$Effects = Elm.Native.Effects.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Task = Elm.Task.make(_elm);
+   var ignore = function (task) {
+      return A2($Task.andThen,
+      task,
+      $Basics.always($Task.succeed({ctor: "_Tuple0"})));
+   };
+   var sequence_ = function (tasks) {
+      return ignore($Task.sequence(tasks));
+   };
+   var requestAnimationFrame = $Native$Effects.requestAnimationFrame;
+   var toTaskHelp = F3(function (address,
+   _v0,
+   effect) {
+      return function () {
+         switch (_v0.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (effect.ctor)
+                 {case "Batch":
+                    return function () {
+                         var $ = $List.unzip(A2($List.map,
+                         A2(toTaskHelp,address,_v0),
+                         effect._0)),
+                         tasks = $._0,
+                         toMsgLists = $._1;
+                         return {ctor: "_Tuple2"
+                                ,_0: sequence_(tasks)
+                                ,_1: $List.concat(toMsgLists)};
+                      }();
+                    case "None": return _v0;
+                    case "Task":
+                    return function () {
+                         var reporter = A2($Task.andThen,
+                         effect._0,
+                         $Signal.send(address));
+                         return {ctor: "_Tuple2"
+                                ,_0: A2($Task.andThen,
+                                _v0._0,
+                                $Basics.always(ignore($Task.spawn(reporter))))
+                                ,_1: _v0._1};
+                      }();
+                    case "Tick":
+                    return {ctor: "_Tuple2"
+                           ,_0: _v0._0
+                           ,_1: A2($List._op["::"],
+                           effect._0,
+                           _v0._1)};}
+                 _U.badCase($moduleName,
+                 "between lines 184 and 209");
+              }();}
+         _U.badCase($moduleName,
+         "between lines 184 and 209");
+      }();
+   });
+   var toTask = F2(function (address,
+   effect) {
+      return function () {
+         var $ = A3(toTaskHelp,
+         address,
+         {ctor: "_Tuple2"
+         ,_0: $Task.succeed({ctor: "_Tuple0"})
+         ,_1: _L.fromArray([])},
+         effect),
+         combinedTask = $._0,
+         tickMessages = $._1;
+         var animationReport = function (time) {
+            return sequence_($List.map(function (f) {
+               return A2($Signal.send,
+               address,
+               f(time));
+            })(tickMessages));
+         };
+         var animationRequests = requestAnimationFrame(animationReport);
+         return A2($Task.andThen,
+         combinedTask,
+         $Basics.always(animationRequests));
+      }();
+   });
+   var Never = function (a) {
+      return {ctor: "Never",_0: a};
+   };
+   var Batch = function (a) {
+      return {ctor: "Batch",_0: a};
+   };
+   var batch = Batch;
+   var None = {ctor: "None"};
+   var none = None;
+   var Tick = function (a) {
+      return {ctor: "Tick",_0: a};
+   };
+   var tick = Tick;
+   var Task = function (a) {
+      return {ctor: "Task",_0: a};
+   };
+   var task = Task;
+   var map = F2(function (func,
+   effect) {
+      return function () {
+         switch (effect.ctor)
+         {case "Batch":
+            return Batch(A2($List.map,
+              map(func),
+              effect._0));
+            case "None": return None;
+            case "Task":
+            return Task(A2($Task.map,
+              func,
+              effect._0));
+            case "Tick":
+            return Tick(function ($) {
+                 return func(effect._0($));
+              });}
+         _U.badCase($moduleName,
+         "between lines 136 and 147");
+      }();
+   });
+   _elm.Effects.values = {_op: _op
+                         ,none: none
+                         ,task: task
+                         ,tick: tick
+                         ,map: map
+                         ,batch: batch
+                         ,toTask: toTask};
+   return _elm.Effects.values;
+};
 Elm.ElmerPress = Elm.ElmerPress || {};
 Elm.ElmerPress.make = function (_elm) {
    "use strict";
@@ -1811,296 +1953,295 @@ Elm.ElmerPress.make = function (_elm) {
    _U = _N.Utils.make(_elm),
    _L = _N.List.make(_elm),
    $moduleName = "ElmerPress",
-   $Array = Elm.Array.make(_elm),
    $Basics = Elm.Basics.make(_elm),
-   $Char = Elm.Char.make(_elm),
+   $Effects = Elm.Effects.make(_elm),
+   $ElmerPress$Color = Elm.ElmerPress.Color.make(_elm),
+   $ElmerPress$Game = Elm.ElmerPress.Game.make(_elm),
+   $ElmerPress$View$Game = Elm.ElmerPress.View.Game.make(_elm),
    $Html = Elm.Html.make(_elm),
-   $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $Html$Events = Elm.Html.Events.make(_elm),
-   $Http = Elm.Http.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
    $Random = Elm.Random.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm),
-   $Signal$Extra = Elm.Signal.Extra.make(_elm),
-   $String = Elm.String.make(_elm),
+   $StartApp = Elm.StartApp.make(_elm),
    $Task = Elm.Task.make(_elm),
-   $Time = Elm.Time.make(_elm);
-   var selectionLetterStyle = _L.fromArray([{ctor: "_Tuple2"
-                                            ,_0: "float"
-                                            ,_1: "left"}]);
-   var boardStyle = _L.fromArray([{ctor: "_Tuple2"
-                                  ,_0: "width"
-                                  ,_1: "120px"}
-                                 ,{ctor: "_Tuple2"
-                                  ,_0: "position"
-                                  ,_1: "relative"}]);
-   var letterSize = 24;
-   var boardLetterStyle = function (letter) {
-      return _L.fromArray([{ctor: "_Tuple2"
-                           ,_0: "visibility"
-                           ,_1: function (_) {
-                              return _.selected;
-                           }(letter) ? "hidden" : "visible"}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "position"
-                           ,_1: "absolute"}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "top"
-                           ,_1: A2($Basics._op["++"],
-                           $Basics.toString(letterSize * function (_) {
-                              return _.y;
-                           }(letter)),
-                           "px")}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "left"
-                           ,_1: A2($Basics._op["++"],
-                           $Basics.toString(letterSize * function (_) {
-                              return _.x;
-                           }(letter)),
-                           "px")}]);
-   };
-   var palette = {_: {}
-                 ,altGray: "#E6E5E2"
-                 ,blue: "#00A2FF"
-                 ,gray: "#E9E8E5"
-                 ,lightBlue: "#78C8F5"
-                 ,lightRed: "#F7998D"
-                 ,red: "#FF432E"};
-   var letterStyle = function (letter) {
-      return _L.fromArray([{ctor: "_Tuple2"
-                           ,_0: "display"
-                           ,_1: "block"}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "width"
-                           ,_1: A2($Basics._op["++"],
-                           $Basics.toString(letterSize),
-                           "px")}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "height"
-                           ,_1: A2($Basics._op["++"],
-                           $Basics.toString(letterSize),
-                           "px")}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "line-height"
-                           ,_1: A2($Basics._op["++"],
-                           $Basics.toString(letterSize),
-                           "px")}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "text-align"
-                           ,_1: "center"}
-                          ,{ctor: "_Tuple2"
-                           ,_0: "background"
-                           ,_1: function () {
-                              var _v0 = function (_) {
-                                 return _.color;
-                              }(letter);
-                              switch (_v0.ctor)
-                              {case "Just":
-                                 switch (_v0._0.ctor)
-                                   {case "Blue":
-                                      return (function (_) {
-                                           return _.locked;
-                                        }(letter) ? function (_) {
-                                           return _.blue;
-                                        } : function (_) {
-                                           return _.lightBlue;
-                                        })(palette);
-                                      case "Red":
-                                      return (function (_) {
-                                           return _.locked;
-                                        }(letter) ? function (_) {
-                                           return _.red;
-                                        } : function (_) {
-                                           return _.lightRed;
-                                        })(palette);}
-                                   break;
-                                 case "Nothing":
-                                 return function (_) {
-                                      return _.gray;
-                                   }(palette);}
-                              _U.badCase($moduleName,
-                              "between lines 337 and 340");
-                           }()}]);
-   };
-   var letterView = F4(function (address,
-   letter,
-   additionalStyle,
-   action) {
-      return A2($Html.div,
-      _L.fromArray([$Html$Attributes.style(A2($Basics._op["++"],
-                   letterStyle(letter),
-                   additionalStyle))
-                   ,A2($Html$Events.onClick,
-                   address,
-                   action)]),
-      _L.fromArray([$Html.text($String.fromChar(function (_) {
-         return _.$char;
-      }(letter)))]));
-   });
-   var isCorrectWord = F2(function (word,
-   words) {
-      return A2($List.any,
-      function (_v2) {
-         return function () {
-            switch (_v2.ctor)
-            {case "_Tuple2":
-               return _U.eq(word,
-                 _v2._0) && _U.eq(_v2._1,true);}
-            _U.badCase($moduleName,
-            "on line 188, column 33 to 64");
-         }();
-      },
-      words);
-   });
-   var wordFromSelection = function (selection) {
-      return $String.fromList(A2($List.map,
+   $Time = Elm.Time.make(_elm),
+   $Util$Effects = Elm.Util.Effects.make(_elm);
+   var seeds = function () {
+      var timeSignal = $Time.every(100);
+      var intSignal = A2($Signal.map,
       function ($) {
-         return $Char.toLower(function (_) {
-            return _.$char;
-         }($));
+         return $Basics.round(F2(function (x,
+         y) {
+            return x * y;
+         })(1000)($));
       },
-      selection));
-   };
-   var memberOfSelection = F2(function (letter,
-   selection) {
-      return A2($List.member,
-      letter,
-      selection);
-   });
-   var removeLetterFromSelection = F2(function (letter,
-   selection) {
-      return A2($List.filter,
-      function (l) {
-         return !_U.eq(l,letter);
+      timeSignal);
+      return A2($Signal.map,
+      $Random.initialSeed,
+      intSignal);
+   }();
+   var findGame = F2(function (id,
+   model) {
+      return $List.head(A2($List.filter,
+      function ($) {
+         return F2(function (x,y) {
+            return _U.eq(x,y);
+         })(id)($Basics.fst($));
       },
-      selection);
+      model.games));
    });
-   var addLetterToSelection = F2(function (letter,
-   selection) {
-      return A2($List.member,
-      letter,
-      selection) ? selection : A2($Basics._op["++"],
-      selection,
-      _L.fromArray([letter]));
-   });
-   var Verified = function (a) {
-      return {ctor: "Verified"
-             ,_0: a};
-   };
-   var Unselect = function (a) {
-      return {ctor: "Unselect"
-             ,_0: a};
-   };
-   var selectedLetterView = F2(function (address,
-   letter) {
-      return A4(letterView,
-      address,
-      letter,
-      selectionLetterStyle,
-      Unselect(letter));
-   });
-   var Select = function (a) {
-      return {ctor: "Select"
-             ,_0: a};
-   };
-   var boardLetterView = F2(function (address,
-   letter) {
-      return A4(letterView,
-      address,
-      letter,
-      boardLetterStyle(letter),
-      Select(letter));
-   });
-   var wordRequestResults = $Signal.mailbox({ctor: "_Tuple2"
-                                            ,_0: ""
-                                            ,_1: false});
-   var knownWords = A3($Signal.foldp,
-   F2(function (x,y) {
-      return A2($List._op["::"],
-      x,
-      y);
-   }),
-   _L.fromArray([]),
-   wordRequestResults.signal);
-   var requestWord = function (word) {
+   var getCurrentGame = function (model) {
       return function () {
-         var sendResult = function (result) {
-            return A2($Signal.send,
-            wordRequestResults.address,
-            result);
-         };
-         var succeedIf404 = function (err) {
-            return function () {
-               switch (err.ctor)
-               {case "BadResponse":
-                  switch (err._0)
-                    {case 404:
-                       return $Task.succeed({ctor: "_Tuple2"
-                                            ,_0: word
-                                            ,_1: false});}
-                    break;}
-               return $Task.fail(err);
-            }();
-         };
-         var succeedIf200 = function (_v9) {
-            return function () {
-               return $Task.succeed({ctor: "_Tuple2"
-                                    ,_0: word
-                                    ,_1: true});
-            }();
-         };
-         var url = A2($Basics._op["++"],
-         "http://letterpress-words-api.herokuapp.com/",
-         $Http.uriEncode(word));
-         var request = A2($Task.onError,
-         A2($Task.andThen,
-         $Http.getString(url),
-         succeedIf200),
-         succeedIf404);
-         return A2($Task.andThen,
-         request,
-         sendResult);
+         var _v0 = model.current;
+         switch (_v0.ctor)
+         {case "Just":
+            return A2(findGame,
+              _v0._0,
+              model);
+            case "Nothing":
+            return $Maybe.Nothing;}
+         _U.badCase($moduleName,
+         "between lines 94 and 97");
       }();
    };
-   var wordQueries = function () {
-      var mailbox = $Signal.mailbox($Maybe.Nothing);
-      var address = A2($Signal.forwardTo,
-      mailbox.address,
-      $Maybe.Just);
-      return _U.replace([["address"
-                         ,address]],
-      mailbox);
-   }();
-   var wordRequestTasks = Elm.Native.Task.make(_elm).performSignal("wordRequestTasks",
-   function () {
-      var doRequest = function (query) {
-         return function () {
-            switch (query.ctor)
-            {case "Just":
-               return requestWord(query._0);
-               case "Nothing":
-               return $Task.succeed({ctor: "_Tuple0"});}
-            _U.badCase($moduleName,
-            "between lines 156 and 162");
-         }();
-      };
-      return A2($Signal.map,
-      doRequest,
-      wordQueries.signal);
-   }());
-   var countLettersOfColor = F2(function (color,
-   board) {
-      return $List.length(A2($List.filter,
-      function (l) {
-         return _U.eq(function (_) {
-            return _.color;
-         }(l),
-         $Maybe.Just(color));
-      },
-      board));
+   var GameAction = F2(function (a,
+   b) {
+      return {ctor: "GameAction"
+             ,_0: a
+             ,_1: b};
    });
+   var update = F2(function (action,
+   model) {
+      return function () {
+         switch (action.ctor)
+         {case "AddGame":
+            return function () {
+                 var game = $ElmerPress$Game.initModel(model.seed);
+                 var id = $List.length(model.games);
+                 return $Util$Effects.noFx(_U.replace([["games"
+                                                       ,A2($List._op["::"],
+                                                       {ctor: "_Tuple2"
+                                                       ,_0: id
+                                                       ,_1: game},
+                                                       model.games)]
+                                                      ,["current"
+                                                       ,$Maybe.Just(id)]],
+                 model));
+              }();
+            case "BackToList":
+            return $Util$Effects.noFx(_U.replace([["current"
+                                                  ,$Maybe.Nothing]],
+              model));
+            case "GameAction":
+            return function () {
+                 var update$ = function (_v7) {
+                    return function () {
+                       switch (_v7.ctor)
+                       {case "_Tuple2":
+                          return _U.eq(_v7._0,
+                            action._0) ? function () {
+                               var $ = A2($ElmerPress$Game.update,
+                               action._1,
+                               _v7._1),
+                               newGame = $._0,
+                               fx = $._1;
+                               return {ctor: "_Tuple2"
+                                      ,_0: {ctor: "_Tuple2"
+                                           ,_0: action._0
+                                           ,_1: newGame}
+                                      ,_1: A2($Effects.map,
+                                      GameAction(action._0),
+                                      fx)};
+                            }() : {ctor: "_Tuple2"
+                                  ,_0: {ctor: "_Tuple2"
+                                       ,_0: _v7._0
+                                       ,_1: _v7._1}
+                                  ,_1: $Effects.none};}
+                       _U.badCase($moduleName,
+                       "between lines 71 and 77");
+                    }();
+                 };
+                 var $ = $List.unzip(A2($List.map,
+                 update$,
+                 model.games)),
+                 games = $._0,
+                 fxs = $._1;
+                 return {ctor: "_Tuple2"
+                        ,_0: _U.replace([["games"
+                                         ,games]],
+                        model)
+                        ,_1: $Effects.batch(fxs)};
+              }();
+            case "OpenGame":
+            return $Util$Effects.noFx(_U.replace([["current"
+                                                  ,$Maybe.Just(action._0)]],
+              model));
+            case "Seeded":
+            return $Util$Effects.noFx(_U.replace([["seed"
+                                                  ,action._0]],
+              model));}
+         _U.badCase($moduleName,
+         "between lines 51 and 86");
+      }();
+   });
+   var BackToList = {ctor: "BackToList"};
+   var OpenGame = function (a) {
+      return {ctor: "OpenGame"
+             ,_0: a};
+   };
+   var gameSummaryView = F2(function (address,
+   _v11) {
+      return function () {
+         switch (_v11.ctor)
+         {case "_Tuple2":
+            return A2($Html.div,
+              _L.fromArray([]),
+              _L.fromArray([$Html.text(A2($Basics._op["++"],
+                           "#",
+                           A2($Basics._op["++"],
+                           $Basics.toString(_v11._0),
+                           " ")))
+                           ,$Html.text("Red: ")
+                           ,$Html.text($Basics.toString(A2($ElmerPress$Game.scoreOf,
+                           $ElmerPress$Color.Red,
+                           _v11._1)))
+                           ,$Html.text(" ")
+                           ,$Html.text("Blue: ")
+                           ,$Html.text($Basics.toString(A2($ElmerPress$Game.scoreOf,
+                           $ElmerPress$Color.Blue,
+                           _v11._1)))
+                           ,$Html.text(" ")
+                           ,A2($Html.button,
+                           _L.fromArray([A2($Html$Events.onClick,
+                           address,
+                           OpenGame(_v11._0))]),
+                           _L.fromArray([$Html.text("Play!")]))]));}
+         _U.badCase($moduleName,
+         "between lines 130 and 139");
+      }();
+   });
+   var AddGame = {ctor: "AddGame"};
+   var listView = F2(function (address,
+   model) {
+      return function () {
+         var buttonView = A2($Html.div,
+         _L.fromArray([]),
+         _L.fromArray([A2($Html.button,
+         _L.fromArray([A2($Html$Events.onClick,
+         address,
+         AddGame)]),
+         _L.fromArray([$Html.text("Start new game")]))]));
+         return A2($Html.div,
+         _L.fromArray([]),
+         A2($Basics._op["++"],
+         A2($List.map,
+         gameSummaryView(address),
+         model.games),
+         _L.fromArray([buttonView])));
+      }();
+   });
+   var view = F2(function (address,
+   model) {
+      return function () {
+         var mainView = function () {
+            var _v15 = getCurrentGame(model);
+            switch (_v15.ctor)
+            {case "Just":
+               switch (_v15._0.ctor)
+                 {case "_Tuple2":
+                    return A2($ElmerPress$View$Game.view,
+                      A2($Signal.forwardTo,
+                      address,
+                      GameAction(_v15._0._0)),
+                      _v15._0._1);}
+                 break;
+               case "Nothing":
+               return A2(listView,
+                 address,
+                 model);}
+            _U.badCase($moduleName,
+            "between lines 104 and 112");
+         }();
+         return A2($Html.div,
+         _L.fromArray([]),
+         _L.fromArray([A2($Html.h1,
+                      _L.fromArray([A2($Html$Events.onClick,
+                      address,
+                      BackToList)]),
+                      _L.fromArray([$Html.text("ElmerPress")]))
+                      ,mainView]));
+      }();
+   });
+   var Seeded = function (a) {
+      return {ctor: "Seeded"
+             ,_0: a};
+   };
+   var app = function () {
+      var model = {_: {}
+                  ,current: $Maybe.Nothing
+                  ,games: _L.fromArray([])
+                  ,seed: $Random.initialSeed(0)};
+      return $StartApp.start({_: {}
+                             ,init: {ctor: "_Tuple2"
+                                    ,_0: model
+                                    ,_1: $Effects.none}
+                             ,inputs: _L.fromArray([A2($Signal.map,
+                             Seeded,
+                             seeds)])
+                             ,update: update
+                             ,view: view});
+   }();
+   var main = app.html;
+   var tasks = Elm.Native.Task.make(_elm).performSignal("tasks",
+   app.tasks);
+   var Model = F3(function (a,
+   b,
+   c) {
+      return {_: {}
+             ,current: b
+             ,games: a
+             ,seed: c};
+   });
+   _elm.ElmerPress.values = {_op: _op
+                            ,Model: Model
+                            ,Seeded: Seeded
+                            ,AddGame: AddGame
+                            ,OpenGame: OpenGame
+                            ,BackToList: BackToList
+                            ,GameAction: GameAction
+                            ,main: main
+                            ,app: app
+                            ,update: update
+                            ,findGame: findGame
+                            ,getCurrentGame: getCurrentGame
+                            ,view: view
+                            ,listView: listView
+                            ,gameSummaryView: gameSummaryView
+                            ,seeds: seeds};
+   return _elm.ElmerPress.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Board = Elm.ElmerPress.Board || {};
+Elm.ElmerPress.Board.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Board = _elm.ElmerPress.Board || {};
+   if (_elm.ElmerPress.Board.values)
+   return _elm.ElmerPress.Board.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Board",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Letter = Elm.ElmerPress.Letter.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
    var compact = function (list) {
       return function () {
          var maybeToList = function (item) {
@@ -2111,12 +2252,66 @@ Elm.ElmerPress.make = function (_elm) {
                   case "Nothing":
                   return _L.fromArray([]);}
                _U.badCase($moduleName,
-               "between lines 99 and 102");
+               "between lines 70 and 73");
             }();
          };
          return A2($List.concatMap,
          maybeToList,
          list);
+      }();
+   };
+   var product = F2(function (xs,
+   ys) {
+      return function () {
+         var product$ = F2(function (xs,
+         ys) {
+            return function () {
+               switch (xs.ctor)
+               {case "::":
+                  return A2($List._op["::"],
+                    A2($List.map,
+                    function (y) {
+                       return {ctor: "_Tuple2"
+                              ,_0: xs._0
+                              ,_1: y};
+                    },
+                    ys),
+                    A2(product$,xs._1,ys));
+                  case "[]":
+                  return _L.fromArray([]);}
+               _U.badCase($moduleName,
+               "between lines 48 and 51");
+            }();
+         });
+         return $List.concat(A2(product$,
+         xs,
+         ys));
+      }();
+   });
+   var fromLetters = function (letters) {
+      return function () {
+         var coords = A2(product,
+         _L.fromArray([0,1,2,3,4]),
+         _L.fromArray([0,1,2,3,4]));
+         var newLetter = F2(function (_v5,
+         $char) {
+            return function () {
+               switch (_v5.ctor)
+               {case "_Tuple2": return {_: {}
+                                       ,$char: $char
+                                       ,color: $Maybe.Nothing
+                                       ,locked: false
+                                       ,selected: false
+                                       ,x: _v5._0
+                                       ,y: _v5._1};}
+               _U.badCase($moduleName,
+               "between lines 56 and 62");
+            }();
+         });
+         return A3($List.map2,
+         newLetter,
+         coords,
+         letters);
       }();
    };
    var letterAt = F3(function (x,
@@ -2175,12 +2370,19 @@ Elm.ElmerPress.make = function (_elm) {
                                      ,below]));
       }();
    });
-   var toggleSelected = function (letter) {
-      return _U.replace([["selected"
-                         ,$Basics.not(function (_) {
-                            return _.selected;
-                         }(letter))]],
-      letter);
+   var countLettersOfColor = F2(function (color,
+   board) {
+      return $List.length(A2($List.filter,
+      function (l) {
+         return _U.eq(function (_) {
+            return _.color;
+         }(l),
+         $Maybe.Just(color));
+      },
+      board));
+   });
+   var countLetters = function (board) {
+      return $List.length(board);
    };
    var replaceLetter = F3(function (board,
    letter,
@@ -2200,7 +2402,7 @@ Elm.ElmerPress.make = function (_elm) {
                   case "[]":
                   return _L.fromArray([]);}
                _U.badCase($moduleName,
-               "between lines 86 and 89");
+               "between lines 21 and 24");
             }();
          });
          return A3(replace,
@@ -2209,209 +2411,356 @@ Elm.ElmerPress.make = function (_elm) {
          newLetter);
       }();
    });
-   var selectLetter = F2(function (letter,
-   model) {
+   var init = fromLetters;
+   _elm.ElmerPress.Board.values = {_op: _op
+                                  ,init: init
+                                  ,replaceLetter: replaceLetter
+                                  ,countLetters: countLetters
+                                  ,countLettersOfColor: countLettersOfColor
+                                  ,neighboursOf: neighboursOf};
+   return _elm.ElmerPress.Board.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Board = Elm.ElmerPress.Board || {};
+Elm.ElmerPress.Board.Random = Elm.ElmerPress.Board.Random || {};
+Elm.ElmerPress.Board.Random.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Board = _elm.ElmerPress.Board || {};
+   _elm.ElmerPress.Board.Random = _elm.ElmerPress.Board.Random || {};
+   if (_elm.ElmerPress.Board.Random.values)
+   return _elm.ElmerPress.Board.Random.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Board.Random",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Board = Elm.ElmerPress.Board.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var take = F3(function (n,g,s) {
+      return _U.cmp(n,
+      0) > 0 ? function () {
+         var $ = A2($Random.generate,
+         g,
+         s),
+         a = $._0,
+         s$ = $._1;
+         var $ = A3(take,n - 1,g,s$),
+         tail = $._0,
+         s$$ = $._1;
+         return {ctor: "_Tuple2"
+                ,_0: A2($List._op["::"],a,tail)
+                ,_1: s$$};
+      }() : {ctor: "_Tuple2"
+            ,_0: _L.fromArray([])
+            ,_1: s};
+   });
+   var randomFloat = $Random.customGenerator(function (seed) {
       return function () {
-         var newLetter = _U.replace([["selected"
-                                     ,true]],
-         letter);
-         var newBoard = A3(replaceLetter,
-         model.board,
-         letter,
-         newLetter);
-         var newSelection = A2(addLetterToSelection,
-         newLetter,
-         model.selection);
-         return _U.replace([["board"
-                            ,newBoard]
-                           ,["selection",newSelection]],
-         model);
+         var $ = A2($Random.generate,
+         A2($Random.$int,
+         0,
+         $Random.maxInt - 1),
+         seed),
+         number = $._0,
+         seed$ = $._1;
+         var scaled = $Basics.toFloat(number) / $Basics.toFloat($Random.maxInt);
+         return {ctor: "_Tuple2"
+                ,_0: scaled
+                ,_1: seed$};
       }();
    });
-   var unselectLetter = F2(function (letter,
-   model) {
+   var findLetter = F2(function (intervals,
+   x) {
       return function () {
-         var newSelection = A2(removeLetterFromSelection,
-         letter,
-         model.selection);
-         var newLetter = _U.replace([["selected"
-                                     ,false]],
-         letter);
-         var newBoard = A3(replaceLetter,
-         model.board,
-         letter,
-         newLetter);
-         return _U.replace([["board"
-                            ,newBoard]
-                           ,["selection",newSelection]],
-         model);
-      }();
-   });
-   var product = F2(function (xs,
-   ys) {
-      return function () {
-         var product$ = F2(function (xs,
-         ys) {
+         var matches = A2($List.filter,
+         function (_v0) {
             return function () {
-               switch (xs.ctor)
-               {case "::":
-                  return A2($List._op["::"],
-                    A2($List.map,
-                    function (y) {
-                       return {ctor: "_Tuple2"
-                              ,_0: xs._0
-                              ,_1: y};
-                    },
-                    ys),
-                    A2(product$,xs._1,ys));
-                  case "[]":
-                  return _L.fromArray([]);}
+               switch (_v0.ctor)
+               {case "_Tuple3":
+                  return _U.cmp(_v0._1,
+                    x) < 1 && _U.cmp(x,_v0._2) < 0;}
                _U.badCase($moduleName,
-               "between lines 67 and 70");
+               "on line 63, column 43 to 62");
             }();
-         });
-         return $List.concat(A2(product$,
-         xs,
-         ys));
+         },
+         intervals);
+         return function () {
+            var _v5 = $List.head(matches);
+            switch (_v5.ctor)
+            {case "Just":
+               switch (_v5._0.ctor)
+                 {case "_Tuple3":
+                    return $Maybe.Just(_v5._0._0);}
+                 break;
+               case "Nothing":
+               return $Maybe.Nothing;}
+            _U.badCase($moduleName,
+            "between lines 65 and 67");
+         }();
       }();
    });
-   var boardFromLetters = function (letters) {
+   var intervals = function (_v10) {
       return function () {
-         var coords = A2(product,
-         _L.fromArray([0,1,2,3,4]),
-         _L.fromArray([0,1,2,3,4]));
-         var newLetter = F2(function (_v21,
-         $char) {
-            return function () {
-               switch (_v21.ctor)
-               {case "_Tuple2": return {_: {}
-                                       ,$char: $char
-                                       ,color: $Maybe.Nothing
-                                       ,locked: false
-                                       ,selected: false
-                                       ,x: _v21._0
-                                       ,y: _v21._1};}
-               _U.badCase($moduleName,
-               "on line 73, column 31 to 111");
-            }();
-         });
-         return A3($List.map2,
-         newLetter,
-         coords,
-         letters);
+         switch (_v10.ctor)
+         {case "::":
+            switch (_v10._0.ctor)
+              {case "_Tuple2":
+                 return function () {
+                      var next = F2(function (_v16,
+                      _v17) {
+                         return function () {
+                            switch (_v17.ctor)
+                            {case "::":
+                               switch (_v17._0.ctor)
+                                 {case "_Tuple3":
+                                    return function () {
+                                         switch (_v16.ctor)
+                                         {case "_Tuple2":
+                                            return A2($List._op["::"],
+                                              {ctor: "_Tuple3"
+                                              ,_0: _v16._0
+                                              ,_1: _v17._0._2
+                                              ,_2: _v17._0._2 + _v16._1},
+                                              A2($List._op["::"],
+                                              {ctor: "_Tuple3"
+                                              ,_0: _v17._0._0
+                                              ,_1: _v17._0._1
+                                              ,_2: _v17._0._2},
+                                              _v17._1));}
+                                         _U.badCase($moduleName,
+                                         "on line 55, column 8 to 70");
+                                      }();}
+                                 break;}
+                            _U.badCase($moduleName,
+                            "on line 55, column 8 to 70");
+                         }();
+                      });
+                      return A3($List.foldl,
+                      next,
+                      _L.fromArray([{ctor: "_Tuple3"
+                                    ,_0: _v10._0._0
+                                    ,_1: 0
+                                    ,_2: _v10._0._1}]),
+                      _v10._1);
+                   }();}
+              break;}
+         _U.badCase($moduleName,
+         "between lines 53 and 57");
       }();
    };
+   var probabilites = _L.fromArray([{ctor: "_Tuple2"
+                                    ,_0: _U.chr("a")
+                                    ,_1: 7.716940430787371e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("h")
+                                    ,_1: 2.4906742076918773e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("e")
+                                    ,_1: 0.11276425705375108}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("d")
+                                    ,_1: 3.307395296159421e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("i")
+                                    ,_1: 9.103100348126132e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("n")
+                                    ,_1: 6.746490562290303e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("g")
+                                    ,_1: 2.7565174145822054e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("s")
+                                    ,_1: 9.639200405424683e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("l")
+                                    ,_1: 5.234068914314628e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("r")
+                                    ,_1: 6.968788446972832e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("v")
+                                    ,_1: 9.235549061194379e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("k")
+                                    ,_1: 8.92462363837127e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("w")
+                                    ,_1: 7.3498986832367455e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("o")
+                                    ,_1: 6.675320560564253e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("f")
+                                    ,_1: 1.1711524259670411e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("t")
+                                    ,_1: 6.579639074301324e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("b")
+                                    ,_1: 1.828864125196151e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("c")
+                                    ,_1: 4.039350784564543e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("y")
+                                    ,_1: 1.627925122537719e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("u")
+                                    ,_1: 3.289031386522467e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("m")
+                                    ,_1: 2.895389555270245e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("p")
+                                    ,_1: 3.0112082900835675e-2}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("x")
+                                    ,_1: 2.797146579465681e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("j")
+                                    ,_1: 1.616102863114787e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("z")
+                                    ,_1: 4.8467322880879704e-3}
+                                   ,{ctor: "_Tuple2"
+                                    ,_0: _U.chr("q")
+                                    ,_1: 1.6551163192104622e-3}]);
    var randomLetters = function (seed) {
       return function () {
-         var alphabet = $Array.fromList(_L.fromArray([_U.chr("A")
-                                                     ,_U.chr("B")
-                                                     ,_U.chr("C")
-                                                     ,_U.chr("D")
-                                                     ,_U.chr("E")
-                                                     ,_U.chr("F")
-                                                     ,_U.chr("G")
-                                                     ,_U.chr("H")
-                                                     ,_U.chr("I")
-                                                     ,_U.chr("J")
-                                                     ,_U.chr("K")
-                                                     ,_U.chr("L")
-                                                     ,_U.chr("M")
-                                                     ,_U.chr("N")
-                                                     ,_U.chr("O")
-                                                     ,_U.chr("P")
-                                                     ,_U.chr("Q")
-                                                     ,_U.chr("R")
-                                                     ,_U.chr("S")
-                                                     ,_U.chr("T")
-                                                     ,_U.chr("U")
-                                                     ,_U.chr("V")
-                                                     ,_U.chr("W")
-                                                     ,_U.chr("X")
-                                                     ,_U.chr("Y")
-                                                     ,_U.chr("Z")]));
-         var intGenerator = A2($Random.$int,
-         0,
-         $Array.length(alphabet) - 1);
-         var listGenerator = A2($Random.list,
+         var randoms = $Basics.fst(A3(take,
          25,
-         intGenerator);
-         var numbers = $Basics.fst(A2($Random.generate,
-         listGenerator,
+         randomFloat,
          seed));
-         var alphabetAt = function ($) {
-            return function (_v25) {
-               return function () {
-                  switch (_v25.ctor)
-                  {case "Just": return _v25._0;}
-                  _U.badCase($moduleName,
-                  "on line 61, column 65 to 66");
-               }();
-            }(A2($Basics.flip,
-            $Array.get,
-            alphabet)($));
-         };
+         var intervals$ = intervals(probabilites);
          return A2($List.map,
-         alphabetAt,
-         numbers);
+         function ($) {
+            return function (_v27) {
+               return function () {
+                  switch (_v27.ctor)
+                  {case "Just": return _v27._0;}
+                  _U.badCase($moduleName,
+                  "on line 19, column 34 to 40");
+               }();
+            }(findLetter(intervals$)($));
+         },
+         randoms);
       }();
    };
-   var hasColor = F2(function (color,
-   letter) {
-      return function () {
-         switch (color.ctor)
-         {case "Just":
-            return _U.eq(letter.color,
-              $Maybe.Just(color._0));
-            case "Nothing": return false;}
-         _U.badCase($moduleName,
-         "between lines 49 and 51");
-      }();
-   });
-   var Model = F3(function (a,
-   b,
-   c) {
-      return {_: {}
-             ,board: a
-             ,selection: b
-             ,turn: c};
-   });
-   var Letter = F6(function (a,
-   b,
-   c,
-   d,
-   e,
-   f) {
-      return {_: {}
-             ,$char: c
-             ,color: d
-             ,locked: f
-             ,selected: e
-             ,x: a
-             ,y: b};
-   });
+   var init = function (seed) {
+      return $ElmerPress$Board.init(randomLetters(seed));
+   };
+   _elm.ElmerPress.Board.Random.values = {_op: _op
+                                         ,init: init};
+   return _elm.ElmerPress.Board.Random.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Color = Elm.ElmerPress.Color || {};
+Elm.ElmerPress.Color.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Color = _elm.ElmerPress.Color || {};
+   if (_elm.ElmerPress.Color.values)
+   return _elm.ElmerPress.Color.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Color",
+   $Basics = Elm.Basics.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
    var Blue = {ctor: "Blue"};
    var Red = {ctor: "Red"};
-   var flipColor = function (color) {
+   var flip = function (color) {
       return function () {
          switch (color.ctor)
          {case "Blue": return Red;
             case "Red": return Blue;}
          _U.badCase($moduleName,
-         "between lines 44 and 46");
+         "between lines 6 and 8");
       }();
    };
+   _elm.ElmerPress.Color.values = {_op: _op
+                                  ,Red: Red
+                                  ,Blue: Blue
+                                  ,flip: flip};
+   return _elm.ElmerPress.Color.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Game = Elm.ElmerPress.Game || {};
+Elm.ElmerPress.Game.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Game = _elm.ElmerPress.Game || {};
+   if (_elm.ElmerPress.Game.values)
+   return _elm.ElmerPress.Game.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Game",
+   $Basics = Elm.Basics.make(_elm),
+   $Effects = Elm.Effects.make(_elm),
+   $ElmerPress$Board = Elm.ElmerPress.Board.make(_elm),
+   $ElmerPress$Board$Random = Elm.ElmerPress.Board.Random.make(_elm),
+   $ElmerPress$Color = Elm.ElmerPress.Color.make(_elm),
+   $ElmerPress$Letter = Elm.ElmerPress.Letter.make(_elm),
+   $ElmerPress$Selection = Elm.ElmerPress.Selection.make(_elm),
+   $Http = Elm.Http.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Task = Elm.Task.make(_elm),
+   $Util$Effects = Elm.Util.Effects.make(_elm);
+   var findVerification = F2(function (word,
+   words) {
+      return $List.head(A2($List.filter,
+      function ($) {
+         return F2(function (x,y) {
+            return _U.eq(x,y);
+         })(word)($Basics.fst($));
+      },
+      words));
+   });
+   var isCorrectWord = F2(function (word,
+   words) {
+      return A2($List.any,
+      function (_v0) {
+         return function () {
+            switch (_v0.ctor)
+            {case "_Tuple2":
+               return _U.eq(word,
+                 _v0._0) && _U.eq(_v0._1,true);}
+            _U.badCase($moduleName,
+            "on line 255, column 33 to 64");
+         }();
+      },
+      words);
+   });
    var switchTurn = function (model) {
       return function () {
          var markIfLetterLocked = F2(function (board,
          letter) {
             return function () {
-               var neighbours = A2(neighboursOf,
+               var neighbours = A2($ElmerPress$Board.neighboursOf,
                letter,
                board);
+               var areAllNeighboursSameColor = A2($List.all,
+               $ElmerPress$Letter.hasColor(letter.color),
+               neighbours);
                return _U.replace([["locked"
-                                  ,A2($List.all,
-                                  hasColor(letter.color),
-                                  neighbours)]],
+                                  ,areAllNeighboursSameColor]],
                letter);
             }();
          });
@@ -2421,7 +2770,7 @@ Elm.ElmerPress.make = function (_elm) {
             board);
          };
          var markLetterColor = function (letter) {
-            return A2(memberOfSelection,
+            return A2($ElmerPress$Selection.member,
             letter,
             model.selection) && $Basics.not(letter.locked) ? _U.replace([["color"
                                                                          ,$Maybe.Just(model.turn)]
@@ -2443,68 +2792,545 @@ Elm.ElmerPress.make = function (_elm) {
                             ,newBoard]
                            ,["selection",_L.fromArray([])]
                            ,["turn"
-                            ,flipColor(model.turn)]],
+                            ,$ElmerPress$Color.flip(model.turn)]],
          model);
       }();
    };
-   var newModel = function (seed) {
+   var storePlayedWord = F2(function (word,
+   model) {
+      return _U.replace([["playedWords"
+                         ,A2($List._op["::"],
+                         word,
+                         model.playedWords)]],
+      model);
+   });
+   var storeVerification = F2(function (verification,
+   model) {
+      return _U.replace([["verifications"
+                         ,A2($List._op["::"],
+                         verification,
+                         model.verifications)]],
+      model);
+   });
+   var setSubmissionStatus = F2(function (status,
+   model) {
+      return _U.replace([["submissionStatus"
+                         ,status]],
+      model);
+   });
+   var clearSelection = function (model) {
       return function () {
-         var board = boardFromLetters(randomLetters(seed));
-         return {_: {}
-                ,board: board
-                ,selection: _L.fromArray([])
-                ,turn: Red};
+         var newBoard = A2($List.map,
+         $ElmerPress$Letter.unselect,
+         model.board);
+         return _U.replace([["board"
+                            ,newBoard]
+                           ,["selection"
+                            ,_L.fromArray([])]],
+         model);
       }();
    };
+   var unselectLetter = F2(function (letter,
+   model) {
+      return function () {
+         var newSelection = A2($ElmerPress$Selection.removeLetter,
+         letter,
+         model.selection);
+         var newLetter = _U.replace([["selected"
+                                     ,false]],
+         letter);
+         var newBoard = A3($ElmerPress$Board.replaceLetter,
+         model.board,
+         letter,
+         newLetter);
+         return _U.replace([["board"
+                            ,newBoard]
+                           ,["selection",newSelection]],
+         model);
+      }();
+   });
+   var selectLetter = F2(function (letter,
+   model) {
+      return function () {
+         var newLetter = _U.replace([["selected"
+                                     ,true]],
+         letter);
+         var newBoard = A3($ElmerPress$Board.replaceLetter,
+         model.board,
+         letter,
+         newLetter);
+         var newSelection = A2($ElmerPress$Selection.addLetter,
+         newLetter,
+         model.selection);
+         return _U.replace([["board"
+                            ,newBoard]
+                           ,["selection",newSelection]],
+         model);
+      }();
+   });
    var winner = function (model) {
       return function () {
-         var numberOfRed = A2(countLettersOfColor,
-         Red,
-         function (_) {
-            return _.board;
-         }(model));
-         var numberOfBlue = A2(countLettersOfColor,
-         Blue,
-         function (_) {
-            return _.board;
-         }(model));
+         var numberOfRed = A2($ElmerPress$Board.countLettersOfColor,
+         $ElmerPress$Color.Red,
+         model.board);
+         var numberOfBlue = A2($ElmerPress$Board.countLettersOfColor,
+         $ElmerPress$Color.Blue,
+         model.board);
          return _U.eq(numberOfRed + numberOfBlue,
-         $List.length(function (_) {
-            return _.board;
-         }(model))) ? _U.cmp(numberOfBlue,
-         numberOfRed) > 0 ? $Maybe.Just(Blue) : $Maybe.Just(Red) : $Maybe.Nothing;
+         $ElmerPress$Board.countLetters(model.board)) ? _U.cmp(numberOfBlue,
+         numberOfRed) > 0 ? $Maybe.Just($ElmerPress$Color.Blue) : $Maybe.Just($ElmerPress$Color.Red) : $Maybe.Nothing;
       }();
    };
    var isGameOver = function (model) {
       return function () {
-         var _v31 = winner(model);
-         switch (_v31.ctor)
+         var _v4 = winner(model);
+         switch (_v4.ctor)
          {case "Just": return true;
             case "Nothing": return false;}
          _U.badCase($moduleName,
-         "between lines 199 and 201");
+         "between lines 129 and 131");
       }();
+   };
+   var scoreOf = F2(function (color,
+   model) {
+      return function () {
+         var and = F3(function (f,
+         g,
+         x) {
+            return f(x) && g(x);
+         });
+         var ofOtherColor = function (letter) {
+            return _U.eq(letter.color,
+            $Maybe.Just($ElmerPress$Color.flip(color)));
+         };
+         var selectionScoreOfCurrentTurn = $List.length(A2($List.filter,
+         function ($) {
+            return $Basics.not(A2(and,
+            ofOtherColor,
+            function (_) {
+               return _.locked;
+            })($));
+         },
+         model.selection));
+         var ofColor = function (letter) {
+            return _U.eq(letter.color,
+            $Maybe.Just(color));
+         };
+         var boardScore = $List.length(A2($List.filter,
+         A2(and,
+         ofColor,
+         function ($) {
+            return $Basics.not(function (_) {
+               return _.selected;
+            }($));
+         }),
+         model.board));
+         var selectionScoreOfOtherTurn = $List.length(A2($List.filter,
+         A2(and,
+         ofColor,
+         function (_) {
+            return _.locked;
+         }),
+         model.selection));
+         return _U.eq(color,
+         model.turn) ? boardScore + selectionScoreOfCurrentTurn : boardScore + selectionScoreOfOtherTurn;
+      }();
+   });
+   var Verified = F2(function (a,
+   b) {
+      return {ctor: "Verified"
+             ,_0: a
+             ,_1: b};
+   });
+   var Submit = function (a) {
+      return {ctor: "Submit"
+             ,_0: a};
+   };
+   var verifyWord = function (word) {
+      return function () {
+         var succeedIf404 = function (err) {
+            return function () {
+               switch (err.ctor)
+               {case "BadResponse":
+                  switch (err._0)
+                    {case 404:
+                       return $Task.succeed(A2(Verified,
+                         word,
+                         false));}
+                    break;}
+               return $Task.succeed(Submit(word));
+            }();
+         };
+         var succeedIf200 = function (_v9) {
+            return function () {
+               return $Task.succeed(A2(Verified,
+               word,
+               true));
+            }();
+         };
+         var url = A2($Basics._op["++"],
+         "http://letterpress-words-api.herokuapp.com/",
+         $Http.uriEncode(word));
+         var request = A2($Task.onError,
+         A2($Task.andThen,
+         $Http.getString(url),
+         succeedIf200),
+         succeedIf404);
+         return $Effects.task(request);
+      }();
+   };
+   var Clear = {ctor: "Clear"};
+   var Unselect = function (a) {
+      return {ctor: "Unselect"
+             ,_0: a};
+   };
+   var Select = function (a) {
+      return {ctor: "Select"
+             ,_0: a};
+   };
+   var Model = F6(function (a,
+   b,
+   c,
+   d,
+   e,
+   f) {
+      return {_: {}
+             ,board: a
+             ,playedWords: f
+             ,selection: b
+             ,submissionStatus: d
+             ,turn: c
+             ,verifications: e};
+   });
+   var AlreadyPlayed = {ctor: "AlreadyPlayed"};
+   var Invalid = {ctor: "Invalid"};
+   var handleVerification = F3(function (word,
+   status,
+   model) {
+      return function () {
+         var selectedWord = $ElmerPress$Selection.toWord(model.selection);
+         var model$ = A2(storeVerification,
+         {ctor: "_Tuple2"
+         ,_0: word
+         ,_1: status},
+         model);
+         var isCorrect = A2(isCorrectWord,
+         selectedWord,
+         model$.verifications);
+         return $Util$Effects.noFx(isCorrect ? function ($) {
+            return switchTurn(storePlayedWord(selectedWord)($));
+         }(model$) : A2(setSubmissionStatus,
+         Invalid,
+         model));
+      }();
+   });
+   var Progress = {ctor: "Progress"};
+   var None = {ctor: "None"};
+   var initModel = function (seed) {
+      return {_: {}
+             ,board: $ElmerPress$Board$Random.init(seed)
+             ,playedWords: _L.fromArray([])
+             ,selection: _L.fromArray([])
+             ,submissionStatus: None
+             ,turn: $ElmerPress$Color.Red
+             ,verifications: _L.fromArray([])};
    };
    var update = F2(function (action,
    model) {
-      return isGameOver(model) ? model : function () {
-         switch (action.ctor)
-         {case "Select":
-            return A2(selectLetter,
-              action._0,
-              model);
-            case "Unselect":
-            return A2(unselectLetter,
-              action._0,
-              model);
-            case "Verified":
-            return A2(isCorrectWord,
-              wordFromSelection(model.selection),
-              action._0) ? switchTurn(model) : model;}
-         _U.badCase($moduleName,
-         "between lines 258 and 268");
+      return function () {
+         var update$ = function (model) {
+            return function () {
+               switch (action.ctor)
+               {case "Clear":
+                  return $Util$Effects.noFx(clearSelection(model));
+                  case "Select":
+                  return $Util$Effects.noFx(A2(selectLetter,
+                    action._0,
+                    model));
+                  case "Submit":
+                  return A2(submitWord,
+                    action._0,
+                    model);
+                  case "Unselect":
+                  return $Util$Effects.noFx(A2(unselectLetter,
+                    action._0,
+                    model));
+                  case "Verified":
+                  return A3(handleVerification,
+                    action._0,
+                    action._1,
+                    model);}
+               _U.badCase($moduleName,
+               "between lines 67 and 82");
+            }();
+         };
+         var isUpdateAllowed = function () {
+            switch (action.ctor)
+            {case "Verified": return true;}
+            return !_U.eq(model.submissionStatus,
+            Progress);
+         }();
+         return isGameOver(model) || $Basics.not(isUpdateAllowed) ? $Util$Effects.noFx(model) : update$(_U.replace([["submissionStatus"
+                                                                                                                    ,None]],
+         model));
       }();
    });
+   var submitWord = F2(function (word,
+   model) {
+      return A2($List.member,
+      word,
+      model.playedWords) ? $Util$Effects.noFx(A2(setSubmissionStatus,
+      AlreadyPlayed,
+      model)) : function () {
+         var _v20 = A2(findVerification,
+         word,
+         model.verifications);
+         switch (_v20.ctor)
+         {case "Just":
+            switch (_v20._0.ctor)
+              {case "_Tuple2":
+                 return A2(update,
+                   A2(Verified,
+                   _v20._0._0,
+                   _v20._0._1),
+                   model);}
+              break;
+            case "Nothing":
+            return A2($Util$Effects.withFx,
+              verifyWord(word),
+              A2(setSubmissionStatus,
+              Progress,
+              model));}
+         _U.badCase($moduleName,
+         "between lines 170 and 175");
+      }();
+   });
+   _elm.ElmerPress.Game.values = {_op: _op
+                                 ,initModel: initModel
+                                 ,update: update
+                                 ,scoreOf: scoreOf
+                                 ,winner: winner
+                                 ,Model: Model
+                                 ,Select: Select
+                                 ,Unselect: Unselect
+                                 ,Clear: Clear
+                                 ,Submit: Submit
+                                 ,Verified: Verified
+                                 ,None: None
+                                 ,Progress: Progress
+                                 ,Invalid: Invalid
+                                 ,AlreadyPlayed: AlreadyPlayed};
+   return _elm.ElmerPress.Game.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Letter = Elm.ElmerPress.Letter || {};
+Elm.ElmerPress.Letter.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Letter = _elm.ElmerPress.Letter || {};
+   if (_elm.ElmerPress.Letter.values)
+   return _elm.ElmerPress.Letter.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Letter",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Color = Elm.ElmerPress.Color.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var unselect = function (letter) {
+      return _U.replace([["selected"
+                         ,false]],
+      letter);
+   };
+   var hasColor = F2(function (color,
+   letter) {
+      return function () {
+         switch (color.ctor)
+         {case "Just":
+            return _U.eq(letter.color,
+              $Maybe.Just(color._0));
+            case "Nothing": return false;}
+         _U.badCase($moduleName,
+         "between lines 8 and 10");
+      }();
+   });
+   var Letter = F6(function (a,
+   b,
+   c,
+   d,
+   e,
+   f) {
+      return {_: {}
+             ,$char: c
+             ,color: d
+             ,locked: f
+             ,selected: e
+             ,x: a
+             ,y: b};
+   });
+   _elm.ElmerPress.Letter.values = {_op: _op
+                                   ,Letter: Letter
+                                   ,hasColor: hasColor
+                                   ,unselect: unselect};
+   return _elm.ElmerPress.Letter.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.Selection = Elm.ElmerPress.Selection || {};
+Elm.ElmerPress.Selection.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.Selection = _elm.ElmerPress.Selection || {};
+   if (_elm.ElmerPress.Selection.values)
+   return _elm.ElmerPress.Selection.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.Selection",
+   $Basics = Elm.Basics.make(_elm),
+   $Char = Elm.Char.make(_elm),
+   $ElmerPress$Letter = Elm.ElmerPress.Letter.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $String = Elm.String.make(_elm);
+   var toWord = function (selection) {
+      return $String.fromList(A2($List.map,
+      function ($) {
+         return $Char.toLower(function (_) {
+            return _.$char;
+         }($));
+      },
+      selection));
+   };
+   var member = F2(function (letter,
+   selection) {
+      return A2($List.member,
+      letter,
+      selection);
+   });
+   var removeLetter = F2(function (letter,
+   selection) {
+      return A2($List.filter,
+      function (l) {
+         return !_U.eq(l,letter);
+      },
+      selection);
+   });
+   var addLetter = F2(function (letter,
+   selection) {
+      return A2($List.member,
+      letter,
+      selection) ? selection : A2($Basics._op["++"],
+      selection,
+      _L.fromArray([letter]));
+   });
+   _elm.ElmerPress.Selection.values = {_op: _op
+                                      ,addLetter: addLetter
+                                      ,removeLetter: removeLetter
+                                      ,member: member
+                                      ,toWord: toWord};
+   return _elm.ElmerPress.Selection.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.View = Elm.ElmerPress.View || {};
+Elm.ElmerPress.View.Board = Elm.ElmerPress.View.Board || {};
+Elm.ElmerPress.View.Board.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.View = _elm.ElmerPress.View || {};
+   _elm.ElmerPress.View.Board = _elm.ElmerPress.View.Board || {};
+   if (_elm.ElmerPress.View.Board.values)
+   return _elm.ElmerPress.View.Board.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.View.Board",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Game = Elm.ElmerPress.Game.make(_elm),
+   $ElmerPress$View$Letter = Elm.ElmerPress.View.Letter.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var boardLetterStyle = function (letter) {
+      return _L.fromArray([{ctor: "_Tuple2"
+                           ,_0: "visibility"
+                           ,_1: letter.selected ? "hidden" : "visible"}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "position"
+                           ,_1: "absolute"}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "top"
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString($ElmerPress$View$Letter.letterSize * letter.y),
+                           "px")}
+                          ,{ctor: "_Tuple2"
+                           ,_0: "left"
+                           ,_1: A2($Basics._op["++"],
+                           $Basics.toString($ElmerPress$View$Letter.letterSize * letter.x),
+                           "px")}]);
+   };
+   var boardLetterView = F2(function (address,
+   letter) {
+      return A4($ElmerPress$View$Letter.view,
+      address,
+      letter,
+      boardLetterStyle(letter),
+      $ElmerPress$Game.Select(letter));
+   });
+   var boardStyle = _L.fromArray([{ctor: "_Tuple2"
+                                  ,_0: "width"
+                                  ,_1: "120px"}
+                                 ,{ctor: "_Tuple2"
+                                  ,_0: "position"
+                                  ,_1: "relative"}]);
+   var view = F2(function (address,
+   board) {
+      return A2($Html.div,
+      _L.fromArray([$Html$Attributes.style(boardStyle)]),
+      A2($List.map,
+      boardLetterView(address),
+      board));
+   });
+   _elm.ElmerPress.View.Board.values = {_op: _op
+                                       ,view: view};
+   return _elm.ElmerPress.View.Board.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.View = Elm.ElmerPress.View || {};
+Elm.ElmerPress.View.Game = Elm.ElmerPress.View.Game || {};
+Elm.ElmerPress.View.Game.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.View = _elm.ElmerPress.View || {};
+   _elm.ElmerPress.View.Game = _elm.ElmerPress.View.Game || {};
+   if (_elm.ElmerPress.View.Game.values)
+   return _elm.ElmerPress.View.Game.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.View.Game",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Color = Elm.ElmerPress.Color.make(_elm),
+   $ElmerPress$Game = Elm.ElmerPress.Game.make(_elm),
+   $ElmerPress$View$Board = Elm.ElmerPress.View.Board.make(_elm),
+   $ElmerPress$View$Selection = Elm.ElmerPress.View.Selection.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
    var view = F2(function (address,
    model) {
       return function () {
@@ -2522,49 +3348,21 @@ Elm.ElmerPress.make = function (_elm) {
             $Basics.toString(color),
             " wins.")))]));
          };
-         var boardView = A2($Html.div,
-         _L.fromArray([$Html$Attributes.style(boardStyle)]),
-         A2($List.map,
-         boardLetterView(address),
-         function (_) {
-            return _.board;
-         }(model)));
-         var submitButton = A2($Html.button,
-         _L.fromArray([A2($Html$Events.onClick,
-                      wordQueries.address,
-                      wordFromSelection(model.selection))
-                      ,$Html$Attributes.disabled($List.isEmpty(model.selection))]),
-         _L.fromArray([$Html.text("Submit")]));
-         var selectionView = A2($Html.div,
-         _L.fromArray([]),
-         A2($Basics._op["++"],
-         A2($List.map,
-         selectedLetterView(address),
-         function (_) {
-            return _.selection;
-         }(model)),
-         _L.fromArray([submitButton])));
          var scoreView = A2($Html.div,
          _L.fromArray([]),
          _L.fromArray([$Html.text("Red: ")
-                      ,$Html.text($Basics.toString(A2(countLettersOfColor,
-                      Red,
-                      function (_) {
-                         return _.board;
-                      }(model))))
+                      ,$Html.text($Basics.toString(A2($ElmerPress$Game.scoreOf,
+                      $ElmerPress$Color.Red,
+                      model)))
                       ,$Html.text(" ")
                       ,$Html.text("Blue: ")
-                      ,$Html.text($Basics.toString(A2(countLettersOfColor,
-                      Blue,
-                      function (_) {
-                         return _.board;
-                      }(model))))]));
+                      ,$Html.text($Basics.toString(A2($ElmerPress$Game.scoreOf,
+                      $ElmerPress$Color.Blue,
+                      model)))]));
          var turnView = A2($Html.div,
          _L.fromArray([]),
          _L.fromArray([$Html.text("Current turn: ")
-                      ,$Html.text($Basics.toString(function (_) {
-                         return _.turn;
-                      }(model)))]));
+                      ,$Html.text($Basics.toString(model.turn))]));
          return A2($Html.div,
          _L.fromArray([]),
          _L.fromArray([turnView
@@ -2572,124 +3370,241 @@ Elm.ElmerPress.make = function (_elm) {
                       ,scoreView
                       ,hr
                       ,function () {
-                         var _v37 = winner(model);
-                         switch (_v37.ctor)
+                         var _v0 = $ElmerPress$Game.winner(model);
+                         switch (_v0.ctor)
                          {case "Just":
-                            return gameOverView(_v37._0);
+                            return gameOverView(_v0._0);
                             case "Nothing":
-                            return selectionView;}
+                            return A2($ElmerPress$View$Selection.view,
+                              address,
+                              model);}
                          _U.badCase($moduleName,
-                         "between lines 308 and 311");
+                         "between lines 36 and 39");
                       }()
                       ,hr
-                      ,boardView]));
+                      ,A2($ElmerPress$View$Board.view,
+                      address,
+                      model.board)]));
       }();
    });
-   var seeds = A2($Signal.map,
-   function ($) {
-      return $Random.initialSeed($Basics.round(F2(function (x,
-      y) {
-         return x * y;
-      })(1000)($Basics.fst($))));
-   },
-   $Time.timestamp($Signal.constant({ctor: "_Tuple0"})));
-   var actions = $Signal.mailbox($Maybe.Nothing);
-   var actionsAddress = A2($Signal.forwardTo,
-   actions.address,
-   $Maybe.Just);
-   var actionsFromKnownWords = Elm.Native.Task.make(_elm).performSignal("actionsFromKnownWords",
-   A2($Signal.map,
-   function (list) {
-      return A2($Signal.send,
-      actionsAddress,
-      Verified(list));
-   },
-   knownWords));
-   var main = function () {
-      var inputs = A3($Signal.map2,
-      F2(function (v0,v1) {
-         return {ctor: "_Tuple2"
-                ,_0: v0
-                ,_1: v1};
-      }),
-      actions.signal,
-      seeds);
-      var models = function () {
-         var updateFromInput = F2(function (_v39,
-         model) {
-            return function () {
-               switch (_v39.ctor)
-               {case "_Tuple2":
-                  switch (_v39._0.ctor)
-                    {case "Just": return A2(update,
-                         _v39._0._0,
-                         model);}
-                    break;}
-               _U.badCase($moduleName,
-               "on line 23, column 55 to 74");
-            }();
-         });
-         return A3($Signal$Extra.foldp$,
-         updateFromInput,
-         function ($) {
-            return newModel($Basics.snd($));
-         },
-         inputs);
+   _elm.ElmerPress.View.Game.values = {_op: _op
+                                      ,view: view};
+   return _elm.ElmerPress.View.Game.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.View = Elm.ElmerPress.View || {};
+Elm.ElmerPress.View.Letter = Elm.ElmerPress.View.Letter || {};
+Elm.ElmerPress.View.Letter.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.View = _elm.ElmerPress.View || {};
+   _elm.ElmerPress.View.Letter = _elm.ElmerPress.View.Letter || {};
+   if (_elm.ElmerPress.View.Letter.values)
+   return _elm.ElmerPress.View.Letter.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.View.Letter",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Color = Elm.ElmerPress.Color.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $Html$Events = Elm.Html.Events.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $String = Elm.String.make(_elm);
+   var palette = {_: {}
+                 ,altGray: "#E6E5E2"
+                 ,blue: "#00A2FF"
+                 ,gray: "#E9E8E5"
+                 ,lightBlue: "#78C8F5"
+                 ,lightRed: "#F7998D"
+                 ,red: "#FF432E"};
+   var letterSize = 24;
+   var letterStyle = function (letter) {
+      return function () {
+         var background = function () {
+            var _v0 = letter.color;
+            switch (_v0.ctor)
+            {case "Just":
+               switch (_v0._0.ctor)
+                 {case "Blue":
+                    return (letter.locked ? function (_) {
+                         return _.blue;
+                      } : function (_) {
+                         return _.lightBlue;
+                      })(palette);
+                    case "Red":
+                    return (letter.locked ? function (_) {
+                         return _.red;
+                      } : function (_) {
+                         return _.lightRed;
+                      })(palette);}
+                 break;
+               case "Nothing":
+               return palette.gray;}
+            _U.badCase($moduleName,
+            "between lines 30 and 39");
+         }();
+         return _L.fromArray([{ctor: "_Tuple2"
+                              ,_0: "display"
+                              ,_1: "block"}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "width"
+                              ,_1: A2($Basics._op["++"],
+                              $Basics.toString(letterSize),
+                              "px")}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "height"
+                              ,_1: A2($Basics._op["++"],
+                              $Basics.toString(letterSize),
+                              "px")}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "line-height"
+                              ,_1: A2($Basics._op["++"],
+                              $Basics.toString(letterSize),
+                              "px")}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "text-align"
+                              ,_1: "center"}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "text-transform"
+                              ,_1: "uppercase"}
+                             ,{ctor: "_Tuple2"
+                              ,_0: "background"
+                              ,_1: background}]);
       }();
-      return A2($Signal.map,
-      view(actionsAddress),
-      models);
-   }();
-   _elm.ElmerPress.values = {_op: _op
-                            ,main: main
-                            ,actions: actions
-                            ,actionsAddress: actionsAddress
-                            ,seeds: seeds
-                            ,Red: Red
-                            ,Blue: Blue
-                            ,Letter: Letter
-                            ,Model: Model
-                            ,flipColor: flipColor
-                            ,hasColor: hasColor
-                            ,randomLetters: randomLetters
-                            ,product: product
-                            ,boardFromLetters: boardFromLetters
-                            ,newModel: newModel
-                            ,replaceLetter: replaceLetter
-                            ,toggleSelected: toggleSelected
-                            ,letterAt: letterAt
-                            ,compact: compact
-                            ,neighboursOf: neighboursOf
-                            ,countLettersOfColor: countLettersOfColor
-                            ,wordQueries: wordQueries
-                            ,wordRequestResults: wordRequestResults
-                            ,knownWords: knownWords
-                            ,requestWord: requestWord
-                            ,Select: Select
-                            ,Unselect: Unselect
-                            ,Verified: Verified
-                            ,addLetterToSelection: addLetterToSelection
-                            ,removeLetterFromSelection: removeLetterFromSelection
-                            ,memberOfSelection: memberOfSelection
-                            ,wordFromSelection: wordFromSelection
-                            ,isCorrectWord: isCorrectWord
-                            ,winner: winner
-                            ,isGameOver: isGameOver
-                            ,selectLetter: selectLetter
-                            ,unselectLetter: unselectLetter
-                            ,switchTurn: switchTurn
-                            ,update: update
-                            ,view: view
-                            ,palette: palette
-                            ,letterSize: letterSize
-                            ,boardStyle: boardStyle
-                            ,letterStyle: letterStyle
-                            ,boardLetterStyle: boardLetterStyle
-                            ,selectionLetterStyle: selectionLetterStyle
-                            ,letterView: letterView
-                            ,selectedLetterView: selectedLetterView
-                            ,boardLetterView: boardLetterView};
-   return _elm.ElmerPress.values;
+   };
+   var view = F4(function (address,
+   letter,
+   additionalStyle,
+   action) {
+      return A2($Html.div,
+      _L.fromArray([$Html$Attributes.style(A2($Basics._op["++"],
+                   letterStyle(letter),
+                   additionalStyle))
+                   ,A2($Html$Events.onClick,
+                   address,
+                   action)]),
+      _L.fromArray([$Html.text($String.fromChar(letter.$char))]));
+   });
+   _elm.ElmerPress.View.Letter.values = {_op: _op
+                                        ,view: view
+                                        ,letterSize: letterSize};
+   return _elm.ElmerPress.View.Letter.values;
+};
+Elm.ElmerPress = Elm.ElmerPress || {};
+Elm.ElmerPress.View = Elm.ElmerPress.View || {};
+Elm.ElmerPress.View.Selection = Elm.ElmerPress.View.Selection || {};
+Elm.ElmerPress.View.Selection.make = function (_elm) {
+   "use strict";
+   _elm.ElmerPress = _elm.ElmerPress || {};
+   _elm.ElmerPress.View = _elm.ElmerPress.View || {};
+   _elm.ElmerPress.View.Selection = _elm.ElmerPress.View.Selection || {};
+   if (_elm.ElmerPress.View.Selection.values)
+   return _elm.ElmerPress.View.Selection.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "ElmerPress.View.Selection",
+   $Basics = Elm.Basics.make(_elm),
+   $ElmerPress$Game = Elm.ElmerPress.Game.make(_elm),
+   $ElmerPress$Selection = Elm.ElmerPress.Selection.make(_elm),
+   $ElmerPress$View$Letter = Elm.ElmerPress.View.Letter.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $Html$Events = Elm.Html.Events.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var isSubmitting = function (model) {
+      return _U.eq(model.submissionStatus,
+      $ElmerPress$Game.Progress);
+   };
+   var isButtonDisabled = function (model) {
+      return $List.isEmpty(model.selection) || isSubmitting(model);
+   };
+   var clearButton = F2(function (address,
+   model) {
+      return A2($Html.button,
+      _L.fromArray([A2($Html$Events.onClick,
+                   address,
+                   $ElmerPress$Game.Clear)
+                   ,$Html$Attributes.disabled(isButtonDisabled(model))]),
+      _L.fromArray([$Html.text("Clear")]));
+   });
+   var submitButton = F2(function (address,
+   model) {
+      return function () {
+         var caption = isSubmitting(model) ? "Submitting…" : "Submit";
+         return A2($Html.button,
+         _L.fromArray([A2($Html$Events.onClick,
+                      address,
+                      $ElmerPress$Game.Submit($ElmerPress$Selection.toWord(model.selection)))
+                      ,$Html$Attributes.disabled(isButtonDisabled(model))]),
+         _L.fromArray([$Html.text(caption)]));
+      }();
+   });
+   var statusViewItems = function (model) {
+      return function () {
+         var _v0 = model.submissionStatus;
+         switch (_v0.ctor)
+         {case "AlreadyPlayed":
+            return _L.fromArray([$Html.text(" ")
+                                ,A2($Html.i,
+                                _L.fromArray([]),
+                                _L.fromArray([$Html.text($ElmerPress$Selection.toWord(model.selection))]))
+                                ,$Html.text(" has already been played!")]);
+            case "Invalid":
+            return _L.fromArray([$Html.text(" ")
+                                ,A2($Html.i,
+                                _L.fromArray([]),
+                                _L.fromArray([$Html.text($ElmerPress$Selection.toWord(model.selection))]))
+                                ,$Html.text(" is not a valid word!")]);}
+         return _L.fromArray([]);
+      }();
+   };
+   var selectionLetterStyle = _L.fromArray([{ctor: "_Tuple2"
+                                            ,_0: "float"
+                                            ,_1: "left"}]);
+   var selectedLetterView = F2(function (address,
+   letter) {
+      return A4($ElmerPress$View$Letter.view,
+      address,
+      letter,
+      selectionLetterStyle,
+      $ElmerPress$Game.Unselect(letter));
+   });
+   var view = F2(function (address,
+   model) {
+      return function () {
+         var buttonViews = _L.fromArray([A2(submitButton,
+                                        address,
+                                        model)
+                                        ,A2(clearButton,
+                                        address,
+                                        model)]);
+         var selection = model.selection;
+         var letterViews = A2($List.map,
+         selectedLetterView(address),
+         selection);
+         return A2($Html.div,
+         _L.fromArray([]),
+         A2($Basics._op["++"],
+         letterViews,
+         A2($Basics._op["++"],
+         buttonViews,
+         statusViewItems(model))));
+      }();
+   });
+   _elm.ElmerPress.View.Selection.values = {_op: _op
+                                           ,view: view};
+   return _elm.ElmerPress.View.Selection.values;
 };
 Elm.Graphics = Elm.Graphics || {};
 Elm.Graphics.Collage = Elm.Graphics.Collage || {};
@@ -6653,6 +7568,36 @@ Elm.Native.Debug.make = function(localRuntime) {
 		watch: F2(watch),
 		watchSummary:F3(watchSummary),
 	};
+};
+
+Elm.Native.Effects = {};
+Elm.Native.Effects.make = function(localRuntime) {
+
+	localRuntime.Native = localRuntime.Native || {};
+	localRuntime.Native.Effects = localRuntime.Native.Effects || {};
+	if (localRuntime.Native.Effects.values)
+	{
+		return localRuntime.Native.Effects.values;
+	}
+
+	var Task = Elm.Native.Task.make(localRuntime);
+	var Utils = Elm.Native.Utils.make(localRuntime);
+
+
+	function raf(timeToTask)
+	{
+		return Task.asyncFunction(function(callback) {
+			requestAnimationFrame(function(time) {
+				Task.perform(timeToTask(time));
+			});
+			callback(Task.succeed(Utils.Tuple0));
+		});
+	}
+
+	return localRuntime.Native.Effects.values = {
+		requestAnimationFrame: raf
+	};
+
 };
 
 
@@ -13991,514 +14936,6 @@ Elm.Signal.make = function (_elm) {
                         ,Mailbox: Mailbox};
    return _elm.Signal.values;
 };
-Elm.Signal = Elm.Signal || {};
-Elm.Signal.Extra = Elm.Signal.Extra || {};
-Elm.Signal.Extra.make = function (_elm) {
-   "use strict";
-   _elm.Signal = _elm.Signal || {};
-   _elm.Signal.Extra = _elm.Signal.Extra || {};
-   if (_elm.Signal.Extra.values)
-   return _elm.Signal.Extra.values;
-   var _op = {},
-   _N = Elm.Native,
-   _U = _N.Utils.make(_elm),
-   _L = _N.List.make(_elm),
-   $moduleName = "Signal.Extra",
-   $Basics = Elm.Basics.make(_elm),
-   $List = Elm.List.make(_elm),
-   $Maybe = Elm.Maybe.make(_elm),
-   $Result = Elm.Result.make(_elm),
-   $Signal = Elm.Signal.make(_elm);
-   var passiveMap2 = F2(function (func,
-   a) {
-      return function ($) {
-         return A2($Signal.map2,
-         func,
-         a)($Signal.sampleOn(a)($));
-      };
-   });
-   var withPassive = passiveMap2(F2(function (x,
-   y) {
-      return x(y);
-   }));
-   var combine = A2($List.foldr,
-   $Signal.map2(F2(function (x,y) {
-      return A2($List._op["::"],
-      x,
-      y);
-   })),
-   $Signal.constant(_L.fromArray([])));
-   var mapMany = F2(function (f,
-   l) {
-      return A2($Signal._op["<~"],
-      f,
-      combine(l));
-   });
-   var applyMany = F2(function (fs,
-   l) {
-      return A2($Signal._op["~"],
-      fs,
-      combine(l));
-   });
-   var filter = function (initial) {
-      return A2($Signal.filterMap,
-      $Basics.identity,
-      initial);
-   };
-   var keepIf = $Signal.filter;
-   var runBuffer$ = F3(function (l,
-   n,
-   input) {
-      return function () {
-         var f = F2(function (inp,
-         prev) {
-            return function () {
-               var l = $List.length(prev);
-               return _U.cmp(l,
-               n) < 0 ? A2($Basics._op["++"],
-               prev,
-               _L.fromArray([inp])) : A2($Basics._op["++"],
-               A2($List.drop,l - n + 1,prev),
-               _L.fromArray([inp]));
-            }();
-         });
-         return A3($Signal.foldp,
-         f,
-         l,
-         input);
-      }();
-   });
-   var runBuffer = runBuffer$(_L.fromArray([]));
-   var foldps = F3(function (f,
-   bs,
-   aS) {
-      return A2($Signal._op["<~"],
-      $Basics.fst,
-      A3($Signal.foldp,
-      F2(function (a,_v0) {
-         return function () {
-            switch (_v0.ctor)
-            {case "_Tuple2": return A2(f,
-                 a,
-                 _v0._1);}
-            _U.badCase($moduleName,
-            "on line 149, column 29 to 34");
-         }();
-      }),
-      bs,
-      aS));
-   });
-   var delayRound = F2(function (b,
-   bS) {
-      return A3(foldps,
-      F2(function ($new,old) {
-         return {ctor: "_Tuple2"
-                ,_0: old
-                ,_1: $new};
-      }),
-      {ctor: "_Tuple2",_0: b,_1: b},
-      bS);
-   });
-   var filterFold = F2(function (f,
-   initial) {
-      return function () {
-         var f$ = F2(function (a,s) {
-            return function () {
-               var res = A2(f,a,s);
-               return {ctor: "_Tuple2"
-                      ,_0: res
-                      ,_1: A2($Maybe.withDefault,
-                      s,
-                      res)};
-            }();
-         });
-         return function ($) {
-            return filter(initial)(A2(foldps,
-            f$,
-            {ctor: "_Tuple2"
-            ,_0: $Maybe.Just(initial)
-            ,_1: initial})($));
-         };
-      }();
-   });
-   var initSignal = function (s) {
-      return A2($Signal.sampleOn,
-      $Signal.constant({ctor: "_Tuple0"}),
-      s);
-   };
-   var switchHelper = F4(function (filter,
-   b,
-   l,
-   r) {
-      return function () {
-         var fromJust = function (_v4) {
-            return function () {
-               switch (_v4.ctor)
-               {case "Just": return _v4._0;}
-               _U.badCase($moduleName,
-               "on line 240, column 25 to 26");
-            }();
-         };
-         var lAndR = A2($Signal.merge,
-         A3(filter,
-         b,
-         $Maybe.Nothing,
-         A2($Signal._op["<~"],
-         $Maybe.Just,
-         l)),
-         A3(filter,
-         A2($Signal._op["<~"],
-         $Basics.not,
-         b),
-         $Maybe.Nothing,
-         A2($Signal._op["<~"],
-         $Maybe.Just,
-         r)));
-         var base = A2($Signal._op["~"],
-         A2($Signal._op["~"],
-         A2($Signal._op["<~"],
-         F3(function (bi,li,ri) {
-            return $Maybe.Just(bi ? li : ri);
-         }),
-         initSignal(b)),
-         initSignal(l)),
-         initSignal(r));
-         return A2($Signal._op["<~"],
-         fromJust,
-         A2($Signal.merge,base,lAndR));
-      }();
-   });
-   var unzip4 = function (pairS) {
-      return {ctor: "_Tuple4"
-             ,_0: A2($Signal._op["<~"],
-             function (_v7) {
-                return function () {
-                   switch (_v7.ctor)
-                   {case "_Tuple4": return _v7._0;}
-                   _U.badCase($moduleName,
-                   "on line 109, column 19 to 20");
-                }();
-             },
-             pairS)
-             ,_1: A2($Signal._op["<~"],
-             function (_v13) {
-                return function () {
-                   switch (_v13.ctor)
-                   {case "_Tuple4":
-                      return _v13._1;}
-                   _U.badCase($moduleName,
-                   "on line 109, column 47 to 48");
-                }();
-             },
-             pairS)
-             ,_2: A2($Signal._op["<~"],
-             function (_v19) {
-                return function () {
-                   switch (_v19.ctor)
-                   {case "_Tuple4":
-                      return _v19._2;}
-                   _U.badCase($moduleName,
-                   "on line 109, column 75 to 76");
-                }();
-             },
-             pairS)
-             ,_3: A2($Signal._op["<~"],
-             function (_v25) {
-                return function () {
-                   switch (_v25.ctor)
-                   {case "_Tuple4":
-                      return _v25._3;}
-                   _U.badCase($moduleName,
-                   "on line 109, column 103 to 104");
-                }();
-             },
-             pairS)};
-   };
-   var unzip3 = function (pairS) {
-      return {ctor: "_Tuple3"
-             ,_0: A2($Signal._op["<~"],
-             function (_v31) {
-                return function () {
-                   switch (_v31.ctor)
-                   {case "_Tuple3":
-                      return _v31._0;}
-                   _U.badCase($moduleName,
-                   "on line 103, column 17 to 18");
-                }();
-             },
-             pairS)
-             ,_1: A2($Signal._op["<~"],
-             function (_v36) {
-                return function () {
-                   switch (_v36.ctor)
-                   {case "_Tuple3":
-                      return _v36._1;}
-                   _U.badCase($moduleName,
-                   "on line 103, column 43 to 44");
-                }();
-             },
-             pairS)
-             ,_2: A2($Signal._op["<~"],
-             function (_v41) {
-                return function () {
-                   switch (_v41.ctor)
-                   {case "_Tuple3":
-                      return _v41._2;}
-                   _U.badCase($moduleName,
-                   "on line 103, column 69 to 70");
-                }();
-             },
-             pairS)};
-   };
-   var unzip = function (pairS) {
-      return {ctor: "_Tuple2"
-             ,_0: A2($Signal._op["<~"],
-             $Basics.fst,
-             pairS)
-             ,_1: A2($Signal._op["<~"],
-             $Basics.snd,
-             pairS)};
-   };
-   var zip4 = $Signal.map4(F4(function (v0,
-   v1,
-   v2,
-   v3) {
-      return {ctor: "_Tuple4"
-             ,_0: v0
-             ,_1: v1
-             ,_2: v2
-             ,_3: v3};
-   }));
-   var zip3 = $Signal.map3(F3(function (v0,
-   v1,
-   v2) {
-      return {ctor: "_Tuple3"
-             ,_0: v0
-             ,_1: v1
-             ,_2: v2};
-   }));
-   var zip = $Signal.map2(F2(function (v0,
-   v1) {
-      return {ctor: "_Tuple2"
-             ,_0: v0
-             ,_1: v1};
-   }));
-   var keepWhen = F3(function (boolSig,
-   a,
-   aSig) {
-      return $Signal.map($Basics.snd)(A2(keepIf,
-      $Basics.fst,
-      {ctor: "_Tuple2"
-      ,_0: true
-      ,_1: a})($Signal.sampleOn(aSig)(A2(zip,
-      boolSig,
-      aSig))));
-   });
-   var switchWhen = F3(function (b,
-   l,
-   r) {
-      return A4(switchHelper,
-      keepWhen,
-      b,
-      l,
-      r);
-   });
-   var sampleWhen = F3(function (bs,
-   def,
-   sig) {
-      return $Signal.map($Basics.snd)(A2(keepIf,
-      $Basics.fst,
-      {ctor: "_Tuple2"
-      ,_0: true
-      ,_1: def})(A2(zip,bs,sig)));
-   });
-   var switchSample = F3(function (b,
-   l,
-   r) {
-      return A4(switchHelper,
-      sampleWhen,
-      b,
-      l,
-      r);
-   });
-   var keepThen = F3(function (choice,
-   base,
-   signal) {
-      return A2(switchSample,
-      choice,
-      signal)($Signal.constant(base));
-   });
-   _op["~>"] = $Basics.flip($Signal.map);
-   var foldp$ = F3(function (fun,
-   initFun,
-   input) {
-      return function () {
-         var fromJust = function (_v46) {
-            return function () {
-               switch (_v46.ctor)
-               {case "Just": return _v46._0;}
-               _U.badCase($moduleName,
-               "on line 136, column 25 to 26");
-            }();
-         };
-         var fun$ = F2(function (_v49,
-         mb) {
-            return function () {
-               switch (_v49.ctor)
-               {case "_Tuple2":
-                  return $Maybe.Just(fun(_v49._0)(A2($Maybe.withDefault,
-                    _v49._1,
-                    mb)));}
-               _U.badCase($moduleName,
-               "between lines 133 and 134");
-            }();
-         });
-         var initial = A2(_op["~>"],
-         initSignal(input),
-         initFun);
-         var rest = A3($Signal.foldp,
-         fun$,
-         $Maybe.Nothing,
-         A2(zip,input,initial));
-         return A2($Signal._op["<~"],
-         fromJust,
-         A2($Signal.merge,
-         A2($Signal._op["<~"],
-         $Maybe.Just,
-         initial),
-         rest));
-      }();
-   });
-   var foldps$ = F3(function (f,
-   iF,
-   aS) {
-      return A2($Signal._op["<~"],
-      $Basics.fst,
-      A3(foldp$,
-      F2(function (a,_v53) {
-         return function () {
-            switch (_v53.ctor)
-            {case "_Tuple2": return A2(f,
-                 a,
-                 _v53._1);}
-            _U.badCase($moduleName,
-            "on line 155, column 46 to 51");
-         }();
-      }),
-      iF,
-      aS));
-   });
-   var foldpWith = F4(function (unpack,
-   step,
-   init,
-   input) {
-      return function () {
-         var step$ = F2(function (a,
-         _v57) {
-            return function () {
-               switch (_v57.ctor)
-               {case "_Tuple2":
-                  return unpack(A2(step,
-                    a,
-                    _v57._1));}
-               _U.badCase($moduleName,
-               "on line 169, column 7 to 25");
-            }();
-         });
-         return A2(_op["~>"],
-         A3($Signal.foldp,
-         step$,
-         init,
-         input),
-         $Basics.fst);
-      }();
-   });
-   var keepWhenI = F2(function (fs,
-   s) {
-      return function () {
-         var fromJust = function (_v61) {
-            return function () {
-               switch (_v61.ctor)
-               {case "Just": return _v61._0;}
-               _U.badCase($moduleName,
-               "on line 286, column 25 to 26");
-            }();
-         };
-         return A2(_op["~>"],
-         A3(keepWhen,
-         A2($Signal.merge,
-         $Signal.constant(true),
-         fs),
-         $Maybe.Nothing,
-         A2($Signal._op["<~"],
-         $Maybe.Just,
-         s)),
-         fromJust);
-      }();
-   });
-   var fairMerge = F3(function (resolve,
-   left,
-   right) {
-      return function () {
-         var merged = A2($Signal.merge,
-         left,
-         right);
-         var boolRight = A2($Signal._op["<~"],
-         $Basics.always(false),
-         right);
-         var boolLeft = A2($Signal._op["<~"],
-         $Basics.always(true),
-         left);
-         var bothUpdated = A2($Signal._op["~"],
-         A2($Signal._op["<~"],
-         F2(function (x,y) {
-            return !_U.eq(x,y);
-         }),
-         A2($Signal.merge,
-         boolLeft,
-         boolRight)),
-         A2($Signal.merge,
-         boolRight,
-         boolLeft));
-         var keep = keepWhenI(bothUpdated);
-         var resolved = A2($Signal._op["~"],
-         A2($Signal._op["<~"],
-         resolve,
-         keep(left)),
-         keep(right));
-         return $Signal.merge(resolved)(merged);
-      }();
-   });
-   _elm.Signal.Extra.values = {_op: _op
-                              ,zip: zip
-                              ,zip3: zip3
-                              ,zip4: zip4
-                              ,unzip: unzip
-                              ,unzip3: unzip3
-                              ,unzip4: unzip4
-                              ,foldp$: foldp$
-                              ,foldps: foldps
-                              ,foldps$: foldps$
-                              ,runBuffer: runBuffer
-                              ,runBuffer$: runBuffer$
-                              ,delayRound: delayRound
-                              ,keepIf: keepIf
-                              ,keepWhen: keepWhen
-                              ,sampleWhen: sampleWhen
-                              ,switchWhen: switchWhen
-                              ,keepWhenI: keepWhenI
-                              ,switchSample: switchSample
-                              ,keepThen: keepThen
-                              ,filter: filter
-                              ,filterFold: filterFold
-                              ,fairMerge: fairMerge
-                              ,combine: combine
-                              ,mapMany: mapMany
-                              ,applyMany: applyMany
-                              ,passiveMap2: passiveMap2
-                              ,withPassive: withPassive};
-   return _elm.Signal.Extra.values;
-};
 Elm.StartApp = Elm.StartApp || {};
 Elm.StartApp.make = function (_elm) {
    "use strict";
@@ -14511,45 +14948,81 @@ Elm.StartApp.make = function (_elm) {
    _L = _N.List.make(_elm),
    $moduleName = "StartApp",
    $Basics = Elm.Basics.make(_elm),
+   $Effects = Elm.Effects.make(_elm),
    $Html = Elm.Html.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
    $Result = Elm.Result.make(_elm),
-   $Signal = Elm.Signal.make(_elm);
-   var start = function (app) {
+   $Signal = Elm.Signal.make(_elm),
+   $Task = Elm.Task.make(_elm);
+   var start = function (config) {
       return function () {
-         var actions = $Signal.mailbox($Maybe.Nothing);
-         var address = A2($Signal.forwardTo,
-         actions.address,
-         $Maybe.Just);
-         var model = A3($Signal.foldp,
-         F2(function (_v0,model) {
+         var update = F2(function (_v0,
+         _v1) {
             return function () {
-               switch (_v0.ctor)
-               {case "Just":
-                  return A2(app.update,
-                    _v0._0,
-                    model);}
+               switch (_v1.ctor)
+               {case "_Tuple2":
+                  return function () {
+                       switch (_v0.ctor)
+                       {case "Just":
+                          return A2(config.update,
+                            _v0._0,
+                            _v1._0);}
+                       _U.badCase($moduleName,
+                       "on line 92, column 13 to 39");
+                    }();}
                _U.badCase($moduleName,
-               "on line 92, column 34 to 57");
+               "on line 92, column 13 to 39");
             }();
-         }),
-         app.model,
-         actions.signal);
-         return A2($Signal.map,
-         app.view(address),
-         model);
+         });
+         var messages = $Signal.mailbox($Maybe.Nothing);
+         var address = A2($Signal.forwardTo,
+         messages.address,
+         $Maybe.Just);
+         var inputs = $Signal.mergeMany(A2($List._op["::"],
+         messages.signal,
+         A2($List.map,
+         $Signal.map($Maybe.Just),
+         config.inputs)));
+         var effectsAndModel = A3($Signal.foldp,
+         update,
+         config.init,
+         inputs);
+         var model = A2($Signal.map,
+         $Basics.fst,
+         effectsAndModel);
+         return {_: {}
+                ,html: A2($Signal.map,
+                config.view(address),
+                model)
+                ,model: model
+                ,tasks: A2($Signal.map,
+                function ($) {
+                   return $Effects.toTask(address)($Basics.snd($));
+                },
+                effectsAndModel)};
       }();
    };
    var App = F3(function (a,b,c) {
       return {_: {}
-             ,model: a
-             ,update: c
-             ,view: b};
+             ,html: a
+             ,model: b
+             ,tasks: c};
+   });
+   var Config = F4(function (a,
+   b,
+   c,
+   d) {
+      return {_: {}
+             ,init: a
+             ,inputs: d
+             ,update: b
+             ,view: c};
    });
    _elm.StartApp.values = {_op: _op
-                          ,App: App
-                          ,start: start};
+                          ,start: start
+                          ,Config: Config
+                          ,App: App};
    return _elm.StartApp.values;
 };
 Elm.String = Elm.String || {};
@@ -15107,6 +15580,41 @@ Elm.Transform2D.make = function (_elm) {
                              ,scaleX: scaleX
                              ,scaleY: scaleY};
    return _elm.Transform2D.values;
+};
+Elm.Util = Elm.Util || {};
+Elm.Util.Effects = Elm.Util.Effects || {};
+Elm.Util.Effects.make = function (_elm) {
+   "use strict";
+   _elm.Util = _elm.Util || {};
+   _elm.Util.Effects = _elm.Util.Effects || {};
+   if (_elm.Util.Effects.values)
+   return _elm.Util.Effects.values;
+   var _op = {},
+   _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   $moduleName = "Util.Effects",
+   $Basics = Elm.Basics.make(_elm),
+   $Effects = Elm.Effects.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var withFx = F2(function (effects,
+   model) {
+      return {ctor: "_Tuple2"
+             ,_0: model
+             ,_1: effects};
+   });
+   var noFx = function (model) {
+      return {ctor: "_Tuple2"
+             ,_0: model
+             ,_1: $Effects.none};
+   };
+   _elm.Util.Effects.values = {_op: _op
+                              ,noFx: noFx
+                              ,withFx: withFx};
+   return _elm.Util.Effects.values;
 };
 Elm.VirtualDom = Elm.VirtualDom || {};
 Elm.VirtualDom.make = function (_elm) {
